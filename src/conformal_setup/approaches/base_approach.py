@@ -5,7 +5,7 @@ from typing import Callable
 
 import numpy as np
 
-from python_research_starter.structs import Action, Goal, State, Task
+from conformal_setup.structs import Action, Goal, State, Task
 
 
 class Approach(abc.ABC):

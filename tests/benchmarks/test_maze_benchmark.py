@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from python_research_starter.benchmarks.maze_benchmark import MazeBenchmark
+from conformal_setup.benchmarks.maze_benchmark import MazeBenchmark
 
 
 def test_maze_benchmark():

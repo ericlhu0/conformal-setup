@@ -4,8 +4,8 @@ import time
 
 import numpy as np
 
-from python_research_starter.approaches.base_approach import Approach
-from python_research_starter.structs import Action, Task
+from conformal_setup.approaches.base_approach import Approach
+from conformal_setup.structs import Action, Task
 
 
 class RandomApproach(Approach):

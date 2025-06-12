@@ -1,7 +1,7 @@
 """Utility functions."""
 
-from python_research_starter.benchmarks.base_benchmark import Benchmark
-from python_research_starter.structs import Action, Task
+from conformal_setup.benchmarks.base_benchmark import Benchmark
+from conformal_setup.structs import Action, Task
 
 
 def plan_is_valid(plan: list[Action], task: Task, benchmark: Benchmark) -> bool:

@@ -3,9 +3,9 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "python_research_starter"
+name = "conformal_setup"
 version = "0.1.0"
-description = "An example of how to structure research code."
+description = "Setup to run conformal prediction experiments."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -15,7 +15,6 @@ dependencies = [
    "pandas-stubs",
    "hydra-core",
    "omegaconf",
-   "tomsutils@git+https://github.com/tomsilver/toms-utils.git",
 ]
 
 [project.optional-dependencies]
@@ -33,7 +32,7 @@ develop = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-python_research_starter = ["py.typed"]
+conformal_setup = ["py.typed"]
 
 [tool.black]
 line-length = 88

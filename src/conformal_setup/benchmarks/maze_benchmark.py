@@ -7,8 +7,8 @@ from typing import ClassVar
 
 import numpy as np
 
-from python_research_starter.benchmarks.base_benchmark import Benchmark
-from python_research_starter.structs import Action, Goal, State, Task
+from conformal_setup.benchmarks.base_benchmark import Benchmark
+from conformal_setup.structs import Action, Goal, State, Task
 
 
 @dataclass(frozen=True)

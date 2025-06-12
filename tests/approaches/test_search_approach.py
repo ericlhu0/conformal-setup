@@ -2,9 +2,9 @@
 
 import numpy as np
 
-from python_research_starter.approaches.search_approach import SearchApproach
-from python_research_starter.benchmarks.maze_benchmark import MazeBenchmark
-from python_research_starter.utils import plan_is_valid
+from conformal_setup.approaches.search_approach import SearchApproach
+from conformal_setup.benchmarks.maze_benchmark import MazeBenchmark
+from conformal_setup.utils import plan_is_valid
 
 
 def test_search_approach():
