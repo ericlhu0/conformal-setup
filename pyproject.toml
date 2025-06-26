@@ -15,6 +15,7 @@ dependencies = [
    "pandas-stubs",
    "hydra-core",
    "omegaconf",
+   "openai>=1.0.0",
 ]
 
 [project.optional-dependencies]
