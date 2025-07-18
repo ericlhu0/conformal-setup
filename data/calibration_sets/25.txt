@@ -1,0 +1,375 @@
+Entry #3
+
+Current Parameter Values:
+scale of sampled actions: 6
+maximum velocity: 13
+MPC weight from distance-to-collision cost: 12
+MPC weight from goal-reaching cost: 4
+
+Feedback: "Can you slow down a bit?"
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -2
+maximum velocity: -3
+MPC weight from distance-to-collision cost: 0
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #4
+
+Current Parameter Values:
+scale of sampled actions: 17
+maximum velocity: 1
+MPC weight from distance-to-collision cost: 14
+MPC weight from goal-reaching cost: 9
+
+Feedback: "That felt too fast."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -6
+maximum velocity: 0
+MPC weight from distance-to-collision cost: 0
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #5
+
+Current Parameter Values:
+scale of sampled actions: 17
+maximum velocity: 11
+MPC weight from distance-to-collision cost: 19
+MPC weight from goal-reaching cost: 2
+
+Feedback: "Try moving more gently."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -5
+maximum velocity: 0
+MPC weight from distance-to-collision cost: 0
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #6
+
+Current Parameter Values:
+scale of sampled actions: 19
+maximum velocity: 19
+MPC weight from distance-to-collision cost: 16
+MPC weight from goal-reaching cost: 8
+
+Feedback: "It’s pulling too hard."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -8
+maximum velocity: -5
+MPC weight from distance-to-collision cost: 0
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #7
+
+Current Parameter Values:
+scale of sampled actions: 16
+maximum velocity: 16
+MPC weight from distance-to-collision cost: 10
+MPC weight from goal-reaching cost: 12
+
+Feedback: "Ouch, that hurt!"
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -13
+maximum velocity: -10
+MPC weight from distance-to-collision cost: 0
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #8
+
+Current Parameter Values:
+scale of sampled actions: 13
+maximum velocity: 15
+MPC weight from distance-to-collision cost: 11
+MPC weight from goal-reaching cost: 16
+
+Feedback: "Move more carefully please."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -4
+maximum velocity: -4
+MPC weight from distance-to-collision cost: +3
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #9
+
+Current Parameter Values:
+scale of sampled actions: 7
+maximum velocity: 1
+MPC weight from distance-to-collision cost: 16
+MPC weight from goal-reaching cost: 20
+
+Feedback: "That was a little scary."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -2
+maximum velocity: 0
+MPC weight from distance-to-collision cost: +4
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #10
+
+Current Parameter Values:
+scale of sampled actions: 1
+maximum velocity: 19
+MPC weight from distance-to-collision cost: 13
+MPC weight from goal-reaching cost: 19
+
+Feedback: "Don’t get so close to my shoulder."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: 0
+maximum velocity: 0
+MPC weight from distance-to-collision cost: +5
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #11
+
+Current Parameter Values:
+scale of sampled actions: 13
+maximum velocity: 10
+MPC weight from distance-to-collision cost: 14
+MPC weight from goal-reaching cost: 3
+
+Feedback: "I’d like it to be smoother."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -6
+maximum velocity: -2
+MPC weight from distance-to-collision cost: 0
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #12
+
+Current Parameter Values:
+scale of sampled actions: 16
+maximum velocity: 13
+MPC weight from distance-to-collision cost: 4
+MPC weight from goal-reaching cost: 10
+
+Feedback: "It’s jerky — can it be steadier?"
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -5
+maximum velocity: -3
+MPC weight from distance-to-collision cost: 0
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #13
+
+Current Parameter Values:
+scale of sampled actions: 20
+maximum velocity: 12
+MPC weight from distance-to-collision cost: 1
+MPC weight from goal-reaching cost: 4
+
+Feedback: "Maybe ease off on the pressure."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -8
+maximum velocity: -2
+MPC weight from distance-to-collision cost: 0
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #14
+
+Current Parameter Values:
+scale of sampled actions: 10
+maximum velocity: 9
+MPC weight from distance-to-collision cost: 9
+MPC weight from goal-reaching cost: 3
+
+Feedback: "Could you be more precise?"
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -3
+maximum velocity: -1
+MPC weight from distance-to-collision cost: +4
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #15
+
+Current Parameter Values:
+scale of sampled actions: 19
+maximum velocity: 15
+MPC weight from distance-to-collision cost: 14
+MPC weight from goal-reaching cost: 19
+
+Feedback: "I feel like it’s rushing to the position."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -5
+maximum velocity: -3
+MPC weight from distance-to-collision cost: 0
+MPC weight from goal-reaching cost: -9
+
+---
+
+Entry #16
+
+Current Parameter Values:
+scale of sampled actions: 15
+maximum velocity: 15
+MPC weight from distance-to-collision cost: 20
+MPC weight from goal-reaching cost: 13
+
+Feedback: "That was too abrupt."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -6
+maximum velocity: -4
+MPC weight from distance-to-collision cost: 0
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #17
+
+Current Parameter Values:
+scale of sampled actions: 19
+maximum velocity: 10
+MPC weight from distance-to-collision cost: 5
+MPC weight from goal-reaching cost: 11
+
+Feedback: "More gradual movements, please."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -9
+maximum velocity: -2
+MPC weight from distance-to-collision cost: 0
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #18
+
+Current Parameter Values:
+scale of sampled actions: 13
+maximum velocity: 13
+MPC weight from distance-to-collision cost: 10
+MPC weight from goal-reaching cost: 9
+
+Feedback: "That felt surprisingly tight."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -1
+maximum velocity: -1
+MPC weight from distance-to-collision cost: +6
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #19
+
+Current Parameter Values:
+scale of sampled actions: 4
+maximum velocity: 15
+MPC weight from distance-to-collision cost: 8
+MPC weight from goal-reaching cost: 7
+
+Feedback: "It was almost uncomfortable."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: 0
+maximum velocity: -5
+MPC weight from distance-to-collision cost: +5
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #20
+
+Current Parameter Values:
+scale of sampled actions: 15
+maximum velocity: 18
+MPC weight from distance-to-collision cost: 10
+MPC weight from goal-reaching cost: 15
+
+Feedback: "It kind of startled me."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -2
+maximum velocity: -5
+MPC weight from distance-to-collision cost: +3
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #21
+
+Current Parameter Values:
+scale of sampled actions: 15
+maximum velocity: 18
+MPC weight from distance-to-collision cost: 10
+MPC weight from goal-reaching cost: 15
+
+Feedback: "That was fine, but maybe a touch slower."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: -1
+maximum velocity: -1
+MPC weight from distance-to-collision cost: 0
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #22
+
+Current Parameter Values:
+scale of sampled actions: 10
+maximum velocity: 13
+MPC weight from distance-to-collision cost: 5
+MPC weight from goal-reaching cost: 16
+
+Feedback: "Keep a bit more distance from my elbow."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: 0
+maximum velocity: 0
+MPC weight from distance-to-collision cost: +8
+MPC weight from goal-reaching cost: 0
+
+---
+
+Entry #23
+
+Current Parameter Values:
+scale of sampled actions: 2
+maximum velocity: 4
+MPC weight from distance-to-collision cost: 4
+MPC weight from goal-reaching cost: 10
+
+Feedback: "Seems like it was going to collide with me."
+
+Desired Changes in Parameter Values:
+scale of sampled actions: 0
+maximum velocity: 0
+MPC weight from distance-to-collision cost: +10
+MPC weight from goal-reaching cost: 0

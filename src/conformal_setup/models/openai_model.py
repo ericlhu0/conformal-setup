@@ -81,7 +81,7 @@ class OpenAIModel(BaseModel):
                 )
 
                 # https://platform.openai.com/docs/api-reference/chat/create#chat-create-logprobs
-                print(response)
+                # print(response)
 
                 top_20_token_logprobs = {}
 
