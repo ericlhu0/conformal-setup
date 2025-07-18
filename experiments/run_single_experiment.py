@@ -8,10 +8,10 @@ import numpy as np
 import pandas as pd
 from omegaconf import DictConfig
 
-from conformal_setup.approaches.base_approach import Approach
-from conformal_setup.benchmarks.base_benchmark import Benchmark
-from conformal_setup.structs import Task
-from conformal_setup.utils import get_plan_cost, plan_is_valid
+from safe_feedback_interpretation.approaches.base_approach import Approach
+from safe_feedback_interpretation.benchmarks.base_benchmark import Benchmark
+from safe_feedback_interpretation.structs import Task
+from safe_feedback_interpretation.utils import get_plan_cost, plan_is_valid
 
 
 @hydra.main(version_base=None, config_name="config", config_path="conf/")

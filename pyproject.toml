@@ -3,9 +3,9 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "conformal_setup"
+name = "safe_feedback_interpretation"
 version = "0.1.0"
-description = "Setup to run conformal prediction experiments."
+description = "Safe Feedback Interpretation"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -33,7 +33,7 @@ develop = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-conformal_setup = ["py.typed"]
+safe_feedback_interpretation = ["py.typed"]
 
 [tool.black]
 line-length = 88

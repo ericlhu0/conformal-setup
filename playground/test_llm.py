@@ -2,7 +2,7 @@
 
 from typing import Any, Dict, List
 
-from conformal_setup.models.openai_model import OpenAIModel
+from safe_feedback_interpretation.models.openai_model import OpenAIModel
 
 
 def test_openai_model() -> List[Dict[Any, Any]]:

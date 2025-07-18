@@ -2,8 +2,8 @@
 
 import numpy as np
 
-from conformal_setup.approaches.random_approach import RandomApproach
-from conformal_setup.benchmarks.maze_benchmark import MazeBenchmark
+from safe_feedback_interpretation.approaches.random_approach import RandomApproach
+from safe_feedback_interpretation.benchmarks.maze_benchmark import MazeBenchmark
 
 
 def test_random_approach():

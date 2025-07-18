@@ -4,7 +4,7 @@ import abc
 
 import numpy as np
 
-from conformal_setup.structs import Action, Goal, State, Task
+from safe_feedback_interpretation.structs import Action, Goal, State, Task
 
 
 class Benchmark(abc.ABC):

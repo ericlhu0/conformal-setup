@@ -7,8 +7,8 @@ from typing import ClassVar
 
 import numpy as np
 
-from conformal_setup.benchmarks.base_benchmark import Benchmark
-from conformal_setup.structs import Action, Goal, State, Task
+from safe_feedback_interpretation.benchmarks.base_benchmark import Benchmark
+from safe_feedback_interpretation.structs import Action, Goal, State, Task
 
 
 @dataclass(frozen=True)

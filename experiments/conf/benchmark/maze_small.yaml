@@ -1,4 +1,4 @@
-_target_: "conformal_setup.benchmarks.maze_benchmark.MazeBenchmark"
+_target_: "safe_feedback_interpretation.benchmarks.maze_benchmark.MazeBenchmark"
 min_height: 5
 max_height: 8
 min_width: 5
