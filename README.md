@@ -33,7 +33,15 @@ For development:
 pip install -e ".[develop]"
 ```
 
-The OpenAI models automatically cache responses to minimize API costs and improve performance. Cache files are stored in `.cache/openai/` by default.
+### Run Experiments
 
+Checking model confidence with input contradictions across modalities
+```bash
+python experiments/modality_disagreement.py -m \
+model=gpt-4o-mini,gpt-4o \
+prompt=a \
+expression_input=img1,txt1
+```
 
+### Thanks
 Thanks to Tom Silver for this repo template! https://github.com/tomsilver/python-research-starter

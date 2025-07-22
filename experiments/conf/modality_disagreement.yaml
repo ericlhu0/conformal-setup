@@ -1,0 +1,7 @@
+defaults:
+  - model: gpt-4o-mini
+  - prompt: a
+  - expression_input: img1
+
+temperature: 1.0
+sys_prompt: answer with yes or no

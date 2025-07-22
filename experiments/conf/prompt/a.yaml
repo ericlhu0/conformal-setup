@@ -1,0 +1,7 @@
+expression_text_placeholder: "[expression]"
+text_input: >
+  You are looking at a patient with whom a physical therapist is doing a physical movement.
+  Here's the feedback you get from the patient:
+  Patient speech: "i'm ok, it doesn't hurt".
+  Patient facial expression: [expression].
+  Is the patient comfortable or not?

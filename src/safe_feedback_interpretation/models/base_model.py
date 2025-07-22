@@ -5,14 +5,15 @@ from typing import Any, List, Union
 
 
 class BaseModel(ABC):
-    """Abstract base class for models used in conformal prediction.
+    """Abstract base class for prediction models.
 
-    Models should return probability distributions that can be used for
-    calibration in conformal prediction methods.
+    Models should return a probability distribution over outputs.
     """
 
     @abstractmethod
-    def __call__(self, inputs: Union[str, List[str]]) -> List[dict[Any, Any]]:
+    def get_single_token_logits(
+        self, inputs: Union[str, List[str]]
+    ) -> List[dict[Any, Any]]:
         """Get probability predictions for inputs.
 
         Args:

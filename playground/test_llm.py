@@ -2,42 +2,48 @@
 
 from typing import Any, Dict, List
 
+import numpy as np
+
 from safe_feedback_interpretation.models.openai_model import OpenAIModel
 
 
 def test_openai_model() -> List[Dict[Any, Any]]:
     """Test OpenAI model."""
 
-    sys_prompt = (
-        "You are a system that translates human language feedback into parameters for a planner. "
-        "The planner wants to help a robot perform tasks for the human, while making the "
-        "human as comfortable as possible. Reply with only one number. "
-        "Previously, the robot sensed force 5 on the human's chest, and force 1 on "
-        "the human's arm. Currently, the robot senses force 6 on the human chest, and force 1 on "
-        'the human\'s arm. The human says "ow, that hurt".'
-    )
+    sys_prompt = "Answer with yes or no."
 
     model = OpenAIModel(
-        model="gpt-4.1-nano",
+        model="gpt-4o-mini",
         system_prompt=sys_prompt,
         temperature=0.2,
-        max_tokens=3,
     )
 
     # Test single input
-    input_text = [
-        "What should the maximum force threshold be for the human's chest?",
-        "What should the maximum force threshold be for the human's arm?",
-    ]
+    # input_text = "What should the maximum force threshold be for the human's arm?"
+    # text_input = (
+    #     "I flip a fair 6-sided die. What number do I get? Answer using only one number."
+    # )
+    # text_input = "what is the facial expression in the image? answer in only one word"
+    text_input = (
+        "You are looking at a patient with whom a physical therapist is "
+        "doing a physical movement. Here's the feedback you get from the patient:"
+        "Patient speech: \"i'm ok, it doesn't hurt\". "
+        # "Patient facial expression: [attached image]. "
+        "Patient facial expression: wincing. "
+        "Is the patient comfortable or not?"
+    )
+    print(text_input)
 
-    response = model(input_text)
+    # image_input = "playground/straight.png"
+    image_input = "playground/wince.png"
+
+    # response = model.get_single_token_logits(text_input, image_input)
+    response = model.get_single_token_logits(text_input)
 
     return response
 
 
 if __name__ == "__main__":
     result = test_openai_model()
-    for r in result:
-        print()
-        for k, v in sorted(r.items(), key=lambda item: item[1], reverse=True):
-            print(f"{k}: {v}")
+    for k, v in sorted(result.items(), key=lambda item: item[1], reverse=True):
+        print(f"{k}: {v}")

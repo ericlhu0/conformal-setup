@@ -1,8 +1,10 @@
-"""OpenAI-based model implementation for conformal prediction."""
+"""OpenAI model wrapper."""
 
+import base64
 import os
 from typing import Any, List, Optional, Union
 
+import numpy as np
 from openai import OpenAI
 
 from .base_model import BaseModel
@@ -38,69 +40,84 @@ class OpenAIModel(BaseModel):
             organization=os.getenv("OPENAI_ORG_ID"),
         )
 
-    def _create_prompt(self, input_text: str) -> str:
-        """Create simple prompt for LLM."""
-        return input_text
+    def encode_image(self, image_path):
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode("utf-8")
 
-    def __call__(
-        self,
-        inputs: Union[str, List[str]],
-    ) -> List[dict[Any, Any]]:
-        """Get probability predictions for inputs.
+    def _create_prompt(
+        self, text_input: str, image_input: Optional[Union[str, List[str]]] = None
+    ) -> str:
+        """Create simple prompt for LLM.
 
         Args:
-            inputs: Single input or list of inputs to classify
+            text_input: Text input to classify
+            image_input: Image path(s)
+        """
+
+        if isinstance(image_input, str):
+            image_input = [image_input]
+
+        if image_input is None:
+            image_input = []
+
+        return [{"type": "text", "text": text_input}] + [
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64,{self.encode_image(image)}"
+                },
+            }
+            for image in image_input
+        ]
+
+    def get_single_token_logits(
+        self,
+        text_input: Union[str, List[str]],
+        image_input: Optional[Union[str, List[str]]] = None,
+    ) -> dict[Any, Any]:
+        """Get logits for single next predicted token.
+
+        Args:
+            text_input: input to classify
+            image_input: image input(s) specified with OpenAI File API string id
 
         Returns:
             List with $n_samples$ elements, each containing a dictionary
             with token and logits for the 20 most likely outputs for each input
         """
-
-        if isinstance(inputs, str):
-            inputs = [inputs]
-
         # Process inputs
-        output = []
+        # Create classification prompt
+        user_prompt = self._create_prompt(text_input, image_input)
 
-        for input_text in inputs:
-            try:
-                # Create classification prompt
-                user_prompt = self._create_prompt(input_text)
+        # Call OpenAI API with logprobs
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            logprobs=True,
+            top_logprobs=20,
+        )
 
-                # Call OpenAI API with logprobs
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[
-                        {"role": "system", "content": self.system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens,
-                    logprobs=True,
-                    top_logprobs=20,
-                )
+        # https://platform.openai.com/docs/api-reference/chat/create#chat-create-logprobs
+        print(response)
 
-                # https://platform.openai.com/docs/api-reference/chat/create#chat-create-logprobs
-                print(response)
+        top_20_token_probs = {}
 
-                top_20_token_logprobs = {}
+        # Appease mypy (output should be the format where you request logprobs)
+        # choices[0] because choices is 1 long except requesting multiple answers
+        # content[0] because we only check probability of first token
+        assert response.choices[0].logprobs is not None
+        assert response.choices[0].logprobs.content is not None
+        assert response.choices[0].logprobs.content[0].top_logprobs is not None
 
-                # Appease mypy (output should be the format where you request logprobs)
-                # choices[0] because choices is 1 long except requesting multiple answers
-                # content[0] because we only check probability of first token
-                assert response.choices[0].logprobs is not None
-                assert response.choices[0].logprobs.content is not None
-                assert response.choices[0].logprobs.content[0].top_logprobs is not None
+        possible_outputs = response.choices[0].logprobs.content[0].top_logprobs
+        for possible_output in possible_outputs:
+            top_20_token_probs[possible_output.token] = np.exp(
+                possible_output.logprob
+            )
 
-                possible_outputs = response.choices[0].logprobs.content[0].top_logprobs
-                for possible_output in possible_outputs:
-                    top_20_token_logprobs[possible_output.token] = (
-                        possible_output.logprob
-                    )
-
-                output.append(top_20_token_logprobs)
-
-            except Exception as e:
-                print(f"Error calling OpenAI API: {e}")
-
-        return output
+        return top_20_token_probs
