@@ -1,11 +1,11 @@
-"""Test LLM."""
+"""Use LLM."""
 
 from typing import Any, Dict
 
 from safe_feedback_interpretation.models.openai_model import OpenAIModel
 
 
-def test_openai_model() -> Dict[Any, Any]:
+def use_openai_model() -> Dict[Any, Any]:
     """Test OpenAI model."""
 
     sys_prompt = "Answer with yes or no."
@@ -43,6 +43,6 @@ def test_openai_model() -> Dict[Any, Any]:
 
 
 if __name__ == "__main__":
-    result = test_openai_model()
+    result = use_openai_model()
     for k, v in sorted(result.items(), key=lambda item: item[1], reverse=True):
         print(f"{k}: {v}")
