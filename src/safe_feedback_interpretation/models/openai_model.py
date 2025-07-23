@@ -2,7 +2,7 @@
 
 import base64
 import os
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
 import numpy as np
 from openai import OpenAI
@@ -40,13 +40,14 @@ class OpenAIModel(BaseModel):
             organization=os.getenv("OPENAI_ORG_ID"),
         )
 
-    def encode_image(self, image_path):
+    def encode_image(self, image_path: str) -> str:
+        """Encode image to base64 string."""
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode("utf-8")
 
     def _create_prompt(
         self, text_input: str, image_input: Optional[Union[str, List[str]]] = None
-    ) -> str:
+    ) -> List[Dict[str, Any]]:
         """Create simple prompt for LLM.
 
         Args:
@@ -72,9 +73,9 @@ class OpenAIModel(BaseModel):
 
     def get_single_token_logits(
         self,
-        text_input: Union[str, List[str]],
+        text_input: str,
         image_input: Optional[Union[str, List[str]]] = None,
-    ) -> dict[Any, Any]:
+    ) -> Dict[Any, Any]:
         """Get logits for single next predicted token.
 
         Args:
@@ -94,7 +95,7 @@ class OpenAIModel(BaseModel):
             model=self.model,
             messages=[
                 {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": user_prompt},
+                {"role": "user", "content": cast(Any, user_prompt)},
             ],
             temperature=self.temperature,
             max_tokens=self.max_tokens,

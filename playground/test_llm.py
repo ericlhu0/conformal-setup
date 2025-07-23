@@ -1,13 +1,11 @@
 """Test LLM."""
 
-from typing import Any, Dict, List
-
-import numpy as np
+from typing import Any, Dict
 
 from safe_feedback_interpretation.models.openai_model import OpenAIModel
 
 
-def test_openai_model() -> List[Dict[Any, Any]]:
+def test_openai_model() -> Dict[Any, Any]:
     """Test OpenAI model."""
 
     sys_prompt = "Answer with yes or no."
@@ -21,7 +19,8 @@ def test_openai_model() -> List[Dict[Any, Any]]:
     # Test single input
     # input_text = "What should the maximum force threshold be for the human's arm?"
     # text_input = (
-    #     "I flip a fair 6-sided die. What number do I get? Answer using only one number."
+    #     "I flip a fair 6-sided die. What number do I get? Answer using only one
+    #      number."
     # )
     # text_input = "what is the facial expression in the image? answer in only one word"
     text_input = (
@@ -37,8 +36,8 @@ def test_openai_model() -> List[Dict[Any, Any]]:
     # image_input = "playground/straight.png"
     image_input = "playground/wince.png"
 
-    # response = model.get_single_token_logits(text_input, image_input)
-    response = model.get_single_token_logits(text_input)
+    response = model.get_single_token_logits(text_input, image_input)
+    # response = model.get_single_token_logits(text_input)
 
     return response
 

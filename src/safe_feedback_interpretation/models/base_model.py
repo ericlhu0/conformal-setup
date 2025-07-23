@@ -1,7 +1,7 @@
 """Base model interface for conformal prediction."""
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 
 class BaseModel(ABC):
@@ -12,8 +12,10 @@ class BaseModel(ABC):
 
     @abstractmethod
     def get_single_token_logits(
-        self, inputs: Union[str, List[str]]
-    ) -> List[dict[Any, Any]]:
+        self,
+        text_input: str,
+        image_input: Optional[Union[str, List[str]]],
+    ) -> Dict[Any, Any]:
         """Get probability predictions for inputs.
 
         Args:

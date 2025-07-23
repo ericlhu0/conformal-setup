@@ -1,9 +1,8 @@
 """Check disagreement when only varying modality."""
 
 import json
-import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List
 
 import hydra
 
@@ -46,7 +45,7 @@ def _main(cfg):
             # Load existing results if file exists
             existing_results = []
             if output_file.exists():
-                with open(output_file, "r") as f:
+                with open(output_file, "r", encoding="utf-8") as f:
                     existing_results = json.load(f)
 
             # Append new result with metadata
@@ -62,7 +61,7 @@ def _main(cfg):
             existing_results.append(result_entry)
 
             # Save updated results
-            with open(output_file, "w") as f:
+            with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(existing_results, f, indent=2)
 
             print(f"Saved results to {output_file}")
