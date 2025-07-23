@@ -116,8 +116,6 @@ class OpenAIModel(BaseModel):
 
         possible_outputs = response.choices[0].logprobs.content[0].top_logprobs
         for possible_output in possible_outputs:
-            top_20_token_probs[possible_output.token] = np.exp(
-                possible_output.logprob
-            )
+            top_20_token_probs[possible_output.token] = np.exp(possible_output.logprob)
 
         return top_20_token_probs

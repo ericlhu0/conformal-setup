@@ -1,0 +1,7 @@
+expression_text: ["[attached image]"]
+image_input: [
+  "experiments/assets/imgs/wince.png",
+  # "experiments/assets/imgs/wince2.png",
+  # "experiments/assets/imgs/wince3.png",
+  # "experiments/assets/imgs/wince4.png",
+]
