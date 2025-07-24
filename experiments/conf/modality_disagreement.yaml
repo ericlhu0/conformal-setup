@@ -2,7 +2,7 @@ defaults:
   - prompt: a
   - expression_input: img
 
-models: [gpt-4o, chatgpt-4o-latest]
+models: [chatgpt-4o-latest]
 temperature: 1.0
 
 sensitivity_specs: [

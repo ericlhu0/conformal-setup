@@ -6,19 +6,13 @@
 
 ### OpenAI API Configuration
 
-This project includes OpenAI-based models for conformal prediction. To use these models:
+This project includes OpenAI-based models. To use these models:
 
-1. **Get an OpenAI API key**: Sign up at [OpenAI](https://platform.openai.com/) and create an API key
-2. **Set environment variables**:
+1. **Set environment variables**:
    ```bash
    export OPENAI_API_KEY="your-api-key-here"
    # Optional: if you have an organization
    export OPENAI_ORG_ID="your-org-id-here"
-   ```
-3. **Or create a `.env` file** in the project root:
-   ```
-   OPENAI_API_KEY=your-api-key-here
-   OPENAI_ORG_ID=your-org-id-here
    ```
 
 ### Installation

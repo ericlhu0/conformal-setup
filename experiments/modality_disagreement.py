@@ -1,7 +1,7 @@
 """Check disagreement when only varying modality."""
 
-from itertools import product
 import json
+from itertools import product
 from pathlib import Path
 from typing import List
 
@@ -28,7 +28,7 @@ def _main(cfg):
         sys_prompt = base_sys_prompt.replace(
             sensitivity_spec_placeholder, sensitivity_spec
         )
-        
+
         model = OpenAIModel(
             model=model_name,
             system_prompt=sys_prompt,
