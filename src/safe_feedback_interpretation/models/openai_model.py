@@ -100,7 +100,7 @@ class OpenAIModel(BaseModel):
             temperature=self.temperature,
             max_tokens=self.max_tokens,
             logprobs=True,
-            top_logprobs=20,
+            top_logprobs=10,
         )
 
         # https://platform.openai.com/docs/api-reference/chat/create#chat-create-logprobs

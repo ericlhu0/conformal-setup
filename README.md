@@ -37,10 +37,7 @@ pip install -e ".[develop]"
 
 Checking model confidence with input contradictions across modalities
 ```bash
-python experiments/modality_disagreement.py -m \
-model=gpt-4o-mini,gpt-4o \
-prompt=a \
-expression_input=img1,txt1
+python experiments/modality_disagreement.py -m prompt=a,b,c expression_input=img,txt
 ```
 
 ### Thanks
