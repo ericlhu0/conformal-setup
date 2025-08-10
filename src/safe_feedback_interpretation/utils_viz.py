@@ -1,7 +1,9 @@
 """Vizualization Utilities."""
 
+from functools import reduce
 import json
-import textwrap
+from pathlib import Path
+import colorhash
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 
@@ -15,25 +17,37 @@ def load_results(file_path: str) -> List[Dict[str, Any]]:
         return json.load(f)
 
 
-def group_experiments(results: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+def group_experiments(
+    results: List[Dict[str, Any]], group_keys: List[str]
+) -> Dict[str, List[Dict[str, Any]]]:
     """Group experiments by model and text_input (base prompt)"""
     groups = defaultdict(list)
 
     for experiment in results:
-        model = experiment["config"]["model"]
-        text_input = experiment["config"]["text_input"]
-        sensitivity_spec = experiment["config"]["sensitivity_spec"]
-        key = f"{model}_{hash(text_input)}_{hash(sensitivity_spec)}"
+        # model = experiment["config"]["model"]
+        # sensitivity_spec = experiment["config"]["sensitivity_spec"]
+        # prompt_id = experiment["config"]["prompt_id"]
+        # context_id = experiment["config"]["context_id"]
+        # key = f"{hash(prompt_id)}_{hash(context_id)}_{hash(sensitivity_spec)}"
+        key = reduce(
+            lambda a, b: a + b,
+            [
+                f"{hash(experiment['config'][group_key])}"
+                for group_key in group_keys
+            ],
+        )
         groups[key].append(experiment)
 
-    print(f"Grouped {len(groups)} unique experiments based on model and text input.")
+    print(f"Grouped {len(groups)} groups")
 
     return groups
 
 
-def plot_probability_distributions(group_data: List[Dict[str, Any]]) -> Figure:
+def plot_probability_distributions(
+    group_data: List[Dict[str, Any]], group_keys: List[str]
+) -> Figure:
     """Create visualization for a group of experiments."""
-    fig, ax = plt.subplots(1, 1, figsize=(12, 2 * len(group_data)))
+    fig, ax = plt.subplots(1, 1, figsize=(15, 1.5 * len(group_data)))
 
     for i, experiment in enumerate(group_data):
         results = experiment["results"]
@@ -51,13 +65,23 @@ def plot_probability_distributions(group_data: List[Dict[str, Any]]) -> Figure:
         left = 0
         y_pos = i
 
+        # def colormap(token: str) -> str:
+        #     """Generate color based on token."""
+        #     if token in ["1", "2", "3", "low"]:
+        #         return "green"
+        #     elif token in ["4", "5", "6", "mid"]:
+        #         return "yellow"
+        #     elif token in ["7", "8", "9", "high"]:
+        #         return "red"
+
         for token, prob in zip(tokens, probs):
             ax.barh(
                 y_pos,
                 prob,
                 left=left,
-                height=0.9,
-                color="lightgray",
+                height=0.8,
+                # color=colormap(token),
+                color=colorhash.ColorHash(token).hex,
                 edgecolor="black",
                 linewidth=0.5,
             )
@@ -71,28 +95,21 @@ def plot_probability_distributions(group_data: List[Dict[str, Any]]) -> Figure:
                     f"{token}\n{prob:.3e}",
                     ha="center",
                     va="center",
-                    fontsize=8,
-                    weight="bold",
+                    fontsize=12,
                 )
 
             left += prob
 
-        # Create label for each bar based on modality condition
-        if config.get("expression_image"):
-            modality = "Text"
-            expression_desc = (
-                config.get("expression_text", "N/A")
-                + "\n"
-                + "Image: "
-                + config.get("expression_image", "")
-            )
-        else:
-            modality = "Text"
-            expression_desc = (
-                config.get("expression_text", "N/A") + "\n" + "Image: " + "No Image"
-            )
+        bar_keys = [key for key in config if key not in group_keys]
 
-        bar_label = f"{modality}: {expression_desc}"
+        bar_label = reduce(
+            lambda a, b: a + b,
+            [f"{key}: {config[key]}\n" for key in bar_keys],
+        )
+
+        # bar_label = ""
+
+        # bar_label = expression_desc
         ax.text(-0.05, y_pos, bar_label, ha="right", va="center", fontsize=10)
 
     # Set axis properties
@@ -102,26 +119,28 @@ def plot_probability_distributions(group_data: List[Dict[str, Any]]) -> Figure:
     ax.set_yticks([])
     ax.set_ylabel("")
 
-    # Create overall title from first experiment's text_input
-    base_prompt = group_data[0]["config"]["text_input"]
-    model = group_data[0]["config"]["model"]
+    config = group_data[0]["config"]
 
-    wrapped_prompt = textwrap.fill(base_prompt, width=80)
-    title_text = f"Model: {model}\nPrompt: {wrapped_prompt}"
+    # wrapped_prompt = textwrap.fill(base_prompt, width=80)
+    title_text = reduce(
+        lambda a, b: a + b, [f"{key}: {str(config[key])[:40]}\n" for key in group_keys]
+    )
 
     plt.title(title_text, fontsize=12, loc="left", pad=20)
     plt.tight_layout()
     return fig
 
 
-def visualize_results(results_file: str) -> List[Tuple[str, Figure]]:
+def visualize_results(
+    results_file: str, group_keys: List[str]
+) -> List[Tuple[str, Figure]]:
     """Main function to create visualizations."""
     results = load_results(results_file)
-    groups = group_experiments(results)
+    groups = group_experiments(results, group_keys)
 
     figures = []
     for group_name, group_data in groups.items():
-        fig = plot_probability_distributions(group_data)
+        fig = plot_probability_distributions(group_data, group_keys)
         figures.append((group_name, fig))
 
     return figures
@@ -129,10 +148,20 @@ def visualize_results(results_file: str) -> List[Tuple[str, Figure]]:
 
 if __name__ == "__main__":
     # Example usage
-    example_results_file = "/multirun/2025-07-23/17-01-40/results.json"
-    example_figures = visualize_results(example_results_file)
+    path = Path("multirun/2025-07-28/contextstrength/")
+    example_results_file = path / "results.json"
+    group_keys = [
+        "model",
+        "temperature",
+        "expression_text",
+        "expression_image",
+        "prompt_id",
+        # "context_id",
+        "sensitivity_spec",
+    ]
+    example_figures = visualize_results(example_results_file, group_keys)
 
     # Save and show figures
     for idx, (example_group_name, example_fig) in enumerate(example_figures):
-        example_fig.savefig(f"results_{idx+1}.png")
-        plt.show()
+        example_fig.savefig(path / f"results_{idx+1}.png")
+        # plt.show()

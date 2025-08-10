@@ -8,7 +8,7 @@ from typing import List
 import hydra
 
 from safe_feedback_interpretation.models.openai_model import OpenAIModel
-from safe_feedback_interpretation.viz_utils import visualize_results
+from safe_feedback_interpretation.utils_viz import visualize_results
 
 
 @hydra.main(version_base=None, config_name="modality_disagreement", config_path="conf/")
@@ -17,12 +17,21 @@ def _main(cfg):
     temperature: float = cfg.temperature
     base_sys_prompt: str = cfg.sys_prompt
     model_names: List[str] = cfg.models
+
     image_inputs: List[str] = cfg.expression_input.image_input
+
     expression_texts: List[str] = cfg.expression_input.expression_text
-    expression_text_placeholder: str = cfg.prompt.expression_text_placeholder
+    expression_text_placeholder: str = cfg.expression_text_placeholder
+
     sensitivity_specs: List[str] = cfg.sensitivity_specs
     sensitivity_spec_placeholder: str = cfg.sensitivity_spec_placeholder
+
+    interaction_context: str = cfg.context.interaction_context
+    interaction_context_placeholder: str = cfg.interaction_context_placeholder
+    context_id: str = cfg.context.context_id
+
     base_text_input: str = cfg.prompt.text_input
+    prompt_id: str = cfg.prompt.prompt_id
 
     for model_name, sensitivity_spec in product(model_names, sensitivity_specs):
         sys_prompt = base_sys_prompt.replace(
@@ -44,6 +53,9 @@ def _main(cfg):
             text_input = base_text_input.replace(
                 expression_text_placeholder, expression_text
             )
+            text_input = text_input.replace(
+                interaction_context_placeholder, interaction_context
+            )
             results = model.get_single_token_logits(text_input, image_input)
 
             # Load existing results if file exists
@@ -58,7 +70,8 @@ def _main(cfg):
                     "model": model_name,
                     "temperature": temperature,
                     "sensitivity_spec": sensitivity_spec,
-                    "text_input": base_text_input,
+                    "prompt_id": prompt_id,
+                    "context_id": context_id,
                     "expression_text": expression_text,
                     "expression_image": image_input,
                 },
@@ -72,7 +85,18 @@ def _main(cfg):
 
             print(f"Saved results to {output_file}")
 
-    figures = visualize_results(output_file)
+    group_keys = [
+        "model",
+        "temperature",
+        # "expression_text",
+        # "expression_image",
+        # "text_input",
+        "prompt_id",
+        "context_id",
+        # "sensitivity_spec",
+    ]
+
+    figures = visualize_results(output_file, group_keys)
 
     # Save and show figures
     for i, (_, fig) in enumerate(figures):

@@ -16,6 +16,7 @@ dependencies = [
    "hydra-core",
    "omegaconf",
    "openai>=1.0.0",
+   "colorhash",
 ]
 
 [project.optional-dependencies]
