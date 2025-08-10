@@ -17,7 +17,7 @@ class OpenAIModel(BaseModel):
         self,
         model: str,
         system_prompt: str,
-        temperature: float = 0.2,
+        temperature: float = 1,
         max_tokens: Optional[int] = None,
     ):
         """Initialize OpenAI model. Assumes OPENAI_API_KEY and optionally
@@ -83,8 +83,7 @@ class OpenAIModel(BaseModel):
             image_input: image input(s) specified with OpenAI File API string id
 
         Returns:
-            List with $n_samples$ elements, each containing a dictionary
-            with token and logits for the 20 most likely outputs for each input
+            dict with token and logits for the 10 most likely outputs for each input
         """
         # Process inputs
         # Create classification prompt
@@ -98,7 +97,7 @@ class OpenAIModel(BaseModel):
                 {"role": "user", "content": cast(Any, user_prompt)},
             ],
             temperature=self.temperature,
-            max_tokens=self.max_tokens,
+            # max_tokens=self.max_tokens,
             logprobs=True,
             top_logprobs=10,
         )
@@ -120,3 +119,31 @@ class OpenAIModel(BaseModel):
             top_20_token_probs[possible_output.token] = np.exp(possible_output.logprob)
 
         return top_20_token_probs
+
+    def get_full_output(
+        self,
+        text_input: str,
+        image_input: Optional[Union[str, List[str]]] = None,
+    ) -> str:
+        """Get sentence output from LLM.
+
+        Args:
+            text_input: input to classify
+            image_input: image input(s) specified with OpenAI File API string id
+
+        Returns:
+            full output text
+        """
+        user_prompt = self._create_prompt(text_input, image_input)
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": cast(Any, user_prompt)},
+            ],
+            temperature=self.temperature,
+            # max_tokens=self.max_tokens,
+        )
+
+        return response.choices[0].message.content

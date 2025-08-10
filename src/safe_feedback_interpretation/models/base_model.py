@@ -22,6 +22,13 @@ class BaseModel(ABC):
             inputs: Single input or list of inputs to predict on
 
         Returns:
-            List with $n_samples$ elements, each containing a dictionary
-            with token and logits for the most likely outputs for each input
+            dict with token and logits for the most likely outputs for each input
         """
+
+    @abstractmethod
+    def get_full_output(
+        self,
+        text_input: str,
+        image_input: Optional[Union[str, List[str]]] = None,
+    ) -> str:
+        """Get sentence output from LLM."""
