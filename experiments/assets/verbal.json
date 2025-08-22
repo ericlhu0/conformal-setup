@@ -1,0 +1,35 @@
+{
+    "veryspecific": {
+        "highdiscomfort": [
+            "ow that's too tight on my wrist",
+            "you're grabbing my wrist way too tight",
+            "my wrist feels like it's being crushed",
+            "way too much pressure on my wrist",
+            "you're digging hard into my wrist"
+        ],
+        "middiscomfort": [
+            "my wrist hurts a little from the pressure",
+            "that's a bit tight on my wrist",
+            "the pressure's just a bit too much on my wrist",
+            "i'm feeling some pressure on my wrist",
+            "the pressure's a bit uncomfortable on my wrist"
+        ],
+        "nodiscomfort": [
+            "i'm fine",
+            "yeah this is good",
+            "everything's ok",
+            "my wrist is good",
+            "no pain at all"
+        ]
+    },
+    "somespecific": {
+        "highdiscomfort": [],
+        "middiscomfort": [],
+        "nodiscomfort": []
+    },
+    "notspecific": {
+        "highdiscomfort": [],
+        "middiscomfort": [],
+        "nodiscomfort": []
+    }
+}

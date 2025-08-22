@@ -1,9 +1,12 @@
-"""OpenAI-based model implementation for conformal prediction."""
+"""OpenAI model wrapper."""
 
+import base64
 import os
-from typing import Any, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, cast
 
+import numpy as np
 from openai import OpenAI
+from openai.types.chat import ChatCompletion
 
 from .base_model import BaseModel
 
@@ -15,7 +18,7 @@ class OpenAIModel(BaseModel):
         self,
         model: str,
         system_prompt: str,
-        temperature: float = 0.2,
+        temperature: float = 1,
         max_tokens: Optional[int] = None,
     ):
         """Initialize OpenAI model. Assumes OPENAI_API_KEY and optionally
@@ -38,69 +41,167 @@ class OpenAIModel(BaseModel):
             organization=os.getenv("OPENAI_ORG_ID"),
         )
 
-    def _create_prompt(self, input_text: str) -> str:
-        """Create simple prompt for LLM."""
-        return input_text
+    def encode_image(self, image_path: str) -> str:
+        """Encode image to base64 string."""
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode("utf-8")
 
-    def __call__(
-        self,
-        inputs: Union[str, List[str]],
-    ) -> List[dict[Any, Any]]:
-        """Get probability predictions for inputs.
+    def _create_prompt(
+        self, text_input: str, image_input: Optional[Union[str, List[str]]] = None
+    ) -> List[Dict[str, Any]]:
+        """Create simple prompt for LLM.
 
         Args:
-            inputs: Single input or list of inputs to classify
-
-        Returns:
-            List with $n_samples$ elements, each containing a dictionary
-            with token and logits for the 20 most likely outputs for each input
+            text_input: Text input to classify
+            image_input: Image path(s)
         """
 
-        if isinstance(inputs, str):
-            inputs = [inputs]
+        if isinstance(image_input, str):
+            image_input = [image_input]
 
+        if image_input is None:
+            image_input = []
+
+        return [{"type": "text", "text": text_input}] + [
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64,{self.encode_image(image)}"
+                },
+            }
+            for image in image_input
+        ]
+
+    def _get_chat_completion(
+        self,
+        text_input: str,
+        image_input: Optional[Union[str, List[str]]] = None,
+    ) -> ChatCompletion:
+        """Get chat completion from OpenAI API."""
         # Process inputs
-        output = []
+        # Create classification prompt
+        user_prompt = self._create_prompt(text_input, image_input)
 
-        for input_text in inputs:
-            try:
-                # Create classification prompt
-                user_prompt = self._create_prompt(input_text)
+        # Call OpenAI API with logprobs
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": cast(Any, user_prompt)},
+            ],
+            temperature=self.temperature,
+            # max_tokens=self.max_tokens,
+            logprobs=True,
+            top_logprobs=10,
+        )
 
-                # Call OpenAI API with logprobs
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[
-                        {"role": "system", "content": self.system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens,
-                    logprobs=True,
-                    top_logprobs=20,
-                )
+        return response
 
-                # https://platform.openai.com/docs/api-reference/chat/create#chat-create-logprobs
-                print(response)
+    def get_single_token_logits(
+        self,
+        text_input: str,
+        image_input: Optional[Union[str, List[str]]] = None,
+    ) -> Dict[Any, Any]:
+        """Get logits for single next predicted token.
 
-                top_20_token_logprobs = {}
+        Args:
+            text_input: input to classify
+            image_input: image input(s) specified with file path string
 
-                # Appease mypy (output should be the format where you request logprobs)
-                # choices[0] because choices is 1 long except requesting multiple answers
-                # content[0] because we only check probability of first token
-                assert response.choices[0].logprobs is not None
-                assert response.choices[0].logprobs.content is not None
-                assert response.choices[0].logprobs.content[0].top_logprobs is not None
+        Returns:
+            dict with token and logits for the 10 most likely outputs for next token
+        """
 
-                possible_outputs = response.choices[0].logprobs.content[0].top_logprobs
-                for possible_output in possible_outputs:
-                    top_20_token_logprobs[possible_output.token] = (
-                        possible_output.logprob
-                    )
+        response = self._get_chat_completion(text_input, image_input)
 
-                output.append(top_20_token_logprobs)
+        print(response)
 
-            except Exception as e:
-                print(f"Error calling OpenAI API: {e}")
+        # https://platform.openai.com/docs/api-reference/chat/create
+        # #chat-create-logprobs
 
-        return output
+        top_10_token_probs = {}
+
+        # Appease mypy (output should be the format where you request logprobs)
+        # choices[0] because choices is 1 long except requesting multiple answers
+        # content[0] because we only check probability of first token
+        assert response.choices[0].logprobs is not None
+        assert response.choices[0].logprobs.content is not None
+        assert response.choices[0].logprobs.content[0].top_logprobs is not None
+
+        possible_outputs = response.choices[0].logprobs.content[0].top_logprobs
+        for possible_output in possible_outputs:
+            top_10_token_probs[possible_output.token] = float(
+                np.exp(possible_output.logprob)
+            )
+
+        return top_10_token_probs
+
+    def get_last_single_token_logits(
+        self,
+        text_input: str,
+        image_input: Optional[Union[str, List[str]]] = None,
+    ) -> Dict[Any, Any]:
+        """Get logits for the last predicted token.
+
+        Args:
+            text_input: input to classify
+            image_input: image input(s) specified with file path string
+
+        Returns:
+            dict with token and logits for the 10 most likely outputs for the last token
+            of the output sequence.
+        """
+        response = self._get_chat_completion(text_input, image_input)
+
+        # https://platform.openai.com/docs/api-reference/chat/create
+        # #chat-create-logprobs
+
+        top_10_token_probs = {}
+
+        # Appease mypy (output should be the format where you request logprobs)
+        # choices[0] because choices is 1 long except requesting multiple answers
+        # content[-1] because we check probability of last token
+        assert response.choices[0].logprobs is not None
+        assert response.choices[0].logprobs.content is not None
+        assert response.choices[0].logprobs.content[-1].top_logprobs is not None
+
+        possible_outputs = response.choices[0].logprobs.content[-1].top_logprobs
+        for possible_output in possible_outputs:
+            top_10_token_probs[possible_output.token] = float(
+                np.exp(possible_output.logprob)
+            )
+
+        print("Top 10 token probs:", top_10_token_probs)
+
+        return top_10_token_probs
+
+    def get_full_output(
+        self,
+        text_input: str,
+        image_input: Optional[Union[str, List[str]]] = None,
+    ) -> str:
+        """Get sentence output from LLM.
+
+        Args:
+            text_input: input to classify
+            image_input: image input(s) specified with OpenAI File API string id
+
+        Returns:
+            full output text
+        """
+        user_prompt = self._create_prompt(text_input, image_input)
+
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": cast(Any, user_prompt)},
+            ],
+            temperature=self.temperature,
+            # max_tokens=self.max_tokens,
+        )
+
+        content = response.choices[0].message.content
+        if content is None:
+            raise ValueError("OpenAI API returned None content")
+        return content
