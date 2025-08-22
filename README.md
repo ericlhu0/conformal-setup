@@ -31,7 +31,7 @@ pip install -e ".[develop]"
 
 Checking model confidence with input contradictions across modalities
 ```bash
-python experiments/modality_disagreement.py -m prompt=a,b,c expression_input=img,txt
+python experiments/experiment_runner.py
 ```
 
 ### Thanks
