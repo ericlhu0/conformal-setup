@@ -1,12 +1,12 @@
 """Vizualization Utilities."""
 
-from functools import reduce
 import json
-from pathlib import Path
-import colorhash
 from collections import defaultdict
+from functools import reduce
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+import colorhash
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
@@ -31,10 +31,7 @@ def group_experiments(
         # key = f"{hash(prompt_id)}_{hash(context_id)}_{hash(sensitivity_spec)}"
         key = reduce(
             lambda a, b: a + b,
-            [
-                f"{hash(experiment['config'][group_key])}"
-                for group_key in group_keys
-            ],
+            [f"{hash(experiment['config'][group_key])}" for group_key in group_keys],
         )
         groups[key].append(experiment)
 

@@ -16,13 +16,31 @@ class BaseModel(ABC):
         text_input: str,
         image_input: Optional[Union[str, List[str]]],
     ) -> Dict[Any, Any]:
-        """Get probability predictions for inputs.
+        """Get logits for single next predicted token.
 
         Args:
-            inputs: Single input or list of inputs to predict on
+            text_input: input to classify
+            image_input: image input(s) specified with file path string
 
         Returns:
-            dict with token and logits for the most likely outputs for each input
+            dict with token and logits for the 10 most likely outputs for next token
+        """
+
+    @abstractmethod
+    def get_last_single_token_logits(
+        self,
+        text_input: str,
+        image_input: Optional[Union[str, List[str]]] = None,
+    ) -> Dict[Any, Any]:
+        """Get logits for the last predicted token.
+
+        Args:
+            text_input: input to classify
+            image_input: image input(s) specified with file path string
+
+        Returns:
+            dict with token and logits for the 10 most likely outputs for the last token
+            of the output sequence.
         """
 
     @abstractmethod

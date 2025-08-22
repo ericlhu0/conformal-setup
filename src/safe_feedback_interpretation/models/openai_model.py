@@ -1,11 +1,12 @@
 """OpenAI model wrapper."""
 
 import base64
+import json
 import os
 from typing import Any, Dict, List, Optional, Union, cast
 
 import numpy as np
-from openai import OpenAI
+from openai import ChatCompletion, OpenAI
 
 from .base_model import BaseModel
 
@@ -71,20 +72,12 @@ class OpenAIModel(BaseModel):
             for image in image_input
         ]
 
-    def get_single_token_logits(
+    def _get_chat_completion(
         self,
         text_input: str,
         image_input: Optional[Union[str, List[str]]] = None,
-    ) -> Dict[Any, Any]:
-        """Get logits for single next predicted token.
-
-        Args:
-            text_input: input to classify
-            image_input: image input(s) specified with OpenAI File API string id
-
-        Returns:
-            dict with token and logits for the 10 most likely outputs for each input
-        """
+    ) -> ChatCompletion:
+        """Get chat completion from OpenAI API."""
         # Process inputs
         # Create classification prompt
         user_prompt = self._create_prompt(text_input, image_input)
@@ -102,10 +95,30 @@ class OpenAIModel(BaseModel):
             top_logprobs=10,
         )
 
-        # https://platform.openai.com/docs/api-reference/chat/create#chat-create-logprobs
+        return response
+
+    def get_single_token_logits(
+        self,
+        text_input: str,
+        image_input: Optional[Union[str, List[str]]] = None,
+    ) -> Dict[Any, Any]:
+        """Get logits for single next predicted token.
+
+        Args:
+            text_input: input to classify
+            image_input: image input(s) specified with file path string
+
+        Returns:
+            dict with token and logits for the 10 most likely outputs for next token
+        """
+
+        response = self._get_chat_completion(text_input, image_input)
+
         print(response)
 
-        top_20_token_probs = {}
+        # https://platform.openai.com/docs/api-reference/chat/create#chat-create-logprobs
+
+        top_10_token_probs = {}
 
         # Appease mypy (output should be the format where you request logprobs)
         # choices[0] because choices is 1 long except requesting multiple answers
@@ -116,9 +129,49 @@ class OpenAIModel(BaseModel):
 
         possible_outputs = response.choices[0].logprobs.content[0].top_logprobs
         for possible_output in possible_outputs:
-            top_20_token_probs[possible_output.token] = np.exp(possible_output.logprob)
+            top_10_token_probs[possible_output.token] = float(
+                np.exp(possible_output.logprob)
+            )
 
-        return top_20_token_probs
+        return top_10_token_probs
+
+    def get_last_single_token_logits(
+        self,
+        text_input: str,
+        image_input: Optional[Union[str, List[str]]] = None,
+    ) -> Dict[Any, Any]:
+        """Get logits for the last predicted token.
+
+        Args:
+            text_input: input to classify
+            image_input: image input(s) specified with file path string
+
+        Returns:
+            dict with token and logits for the 10 most likely outputs for the last token
+            of the output sequence.
+        """
+        response = self._get_chat_completion(text_input, image_input)
+
+        # https://platform.openai.com/docs/api-reference/chat/create#chat-create-logprobs
+
+        top_10_token_probs = {}
+
+        # Appease mypy (output should be the format where you request logprobs)
+        # choices[0] because choices is 1 long except requesting multiple answers
+        # content[-1] because we check probability of last token
+        assert response.choices[0].logprobs is not None
+        assert response.choices[0].logprobs.content is not None
+        assert response.choices[0].logprobs.content[-1].top_logprobs is not None
+
+        possible_outputs = response.choices[0].logprobs.content[-1].top_logprobs
+        for possible_output in possible_outputs:
+            top_10_token_probs[possible_output.token] = float(
+                np.exp(possible_output.logprob)
+            )
+
+        print("Top 10 token probs:", top_10_token_probs)
+
+        return top_10_token_probs
 
     def get_full_output(
         self,

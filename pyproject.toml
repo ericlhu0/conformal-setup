@@ -17,6 +17,9 @@ dependencies = [
    "omegaconf",
    "openai>=1.0.0",
    "colorhash",
+   "seaborn",
+   "scipy",
+   "scikit-learn",
 ]
 
 [project.optional-dependencies]
