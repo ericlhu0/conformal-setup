@@ -4,7 +4,6 @@ files."""
 
 import json
 import os
-from pathlib import Path
 from typing import Any, Dict, List
 
 
@@ -12,7 +11,7 @@ def load_incremental_results(incremental_file: str) -> List[Dict[str, Any]]:
     """Load all results from incremental JSONL file."""
     results = []
     if os.path.exists(incremental_file):
-        with open(incremental_file, "r") as f:
+        with open(incremental_file, "r", encoding="utf-8") as f:
             for line in f:
                 if line.strip():
                     results.append(json.loads(line))
@@ -21,7 +20,7 @@ def load_incremental_results(incremental_file: str) -> List[Dict[str, Any]]:
 
 def load_experiment_config(config_file: str) -> Dict[str, Any]:
     """Load experiment configuration."""
-    with open(config_file, "r") as f:
+    with open(config_file, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
@@ -29,7 +28,7 @@ def organize_results_by_experiment(
     incremental_results: List[Dict[str, Any]],
 ) -> Dict[str, Dict[str, Any]]:
     """Organize incremental results by experiment and scenario."""
-    organized = {}
+    organized: Dict[str, Dict[str, Any]] = {}
 
     for result in incremental_results:
         # Extract experiment info from query_id or metadata
@@ -117,13 +116,13 @@ def create_final_results(
 
     # Save final results
     print(f"💾 Saving final results to {output_file}...")
-    with open(output_file, "w") as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump(final_data, f, indent=2, default=str)
 
-    print(f"✅ Final results saved successfully!")
+    print("✅ Final results saved successfully!")
 
     # Print summary
-    print(f"\n📊 SUMMARY:")
+    print("\n📊 SUMMARY:")
     print(f"   Input file: {incremental_file}")
     print(f"   Output file: {output_file}")
     print(f"   Total experiments: {len(organized_results)}")
@@ -132,7 +131,7 @@ def create_final_results(
         print(f"   {exp_key}: {num_scenarios} scenarios")
 
 
-def main():
+def main() -> None:
     """Main function to create final results from incremental data."""
 
     # Default paths - update these as needed
@@ -161,7 +160,7 @@ def main():
         print("❌ Error: No experiment config files found!")
         return
 
-    print(f"🚀 Creating final results from incremental data...")
+    print("🚀 Creating final results from incremental data...")
     create_final_results(incremental_file, existing_configs, output_file)
 
 

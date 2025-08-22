@@ -1,12 +1,12 @@
 """OpenAI model wrapper."""
 
 import base64
-import json
 import os
 from typing import Any, Dict, List, Optional, Union, cast
 
 import numpy as np
-from openai import ChatCompletion, OpenAI
+from openai import OpenAI
+from openai.types.chat import ChatCompletion
 
 from .base_model import BaseModel
 
@@ -116,7 +116,8 @@ class OpenAIModel(BaseModel):
 
         print(response)
 
-        # https://platform.openai.com/docs/api-reference/chat/create#chat-create-logprobs
+        # https://platform.openai.com/docs/api-reference/chat/create
+        # #chat-create-logprobs
 
         top_10_token_probs = {}
 
@@ -152,7 +153,8 @@ class OpenAIModel(BaseModel):
         """
         response = self._get_chat_completion(text_input, image_input)
 
-        # https://platform.openai.com/docs/api-reference/chat/create#chat-create-logprobs
+        # https://platform.openai.com/docs/api-reference/chat/create
+        # #chat-create-logprobs
 
         top_10_token_probs = {}
 
@@ -199,4 +201,7 @@ class OpenAIModel(BaseModel):
             # max_tokens=self.max_tokens,
         )
 
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+        if content is None:
+            raise ValueError("OpenAI API returned None content")
+        return content

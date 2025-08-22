@@ -2,17 +2,12 @@
 
 import json
 import os
-import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import numpy as np
 from experiment_utils import (
-    calculate_entropy,
-    calculate_max_prob,
-    create_input_metadata,
-    create_text_input,
     get_system_prompt,
     load_experiment_configs,
     run_uncertainty_analysis,
@@ -33,12 +28,14 @@ def save_incremental_result(result: Dict[str, Any], output_file: str) -> None:
         exist_ok=True,
     )
 
-    with open(output_file, "a") as f:
+    with open(output_file, "a", encoding="utf-8") as f:
         json.dump(result, f)
         f.write("\n")
 
 
-def classify_scenario(scenario_name: str, experiment_name: str) -> Dict[str, str]:
+def classify_scenario(
+    scenario_name: str, experiment_name: str
+) -> Dict[str, str | None]:
     """Classify scenario by type based on naming patterns.
 
     Args:
@@ -72,7 +69,8 @@ def classify_scenario(scenario_name: str, experiment_name: str) -> Dict[str, str
             classification["verbal_level"] = level_map.get(verbal_code, verbal_code)
             classification["facial_level"] = level_map.get(facial_code, facial_code)
             classification["scenario_description"] = (
-                f"verbal_{classification['verbal_level']}_facial_{classification['facial_level']}"
+                f"verbal_{classification['verbal_level']}_"
+                f"facial_{classification['facial_level']}"
             )
 
     # Parse ambiguity patterns
@@ -147,14 +145,14 @@ def run_experiment(
             Path(__file__).resolve().parent / "assets" / "img_to_text_map.json"
         )
         try:
-            with open(img_to_text_path, "r") as f:
+            with open(img_to_text_path, "r", encoding="utf-8") as f:
                 img_to_text_map = json.load(f)
             print(
                 f"✅ Loaded image-to-text mapping with {len(img_to_text_map)} entries"
             )
         except Exception as e:
             print(f"🚨 ERROR: Failed to load image-to-text mapping: {e}")
-            print(f"🚨 Falling back to regular image mode")
+            print("🚨 Falling back to regular image mode")
             use_text_descriptions = False
 
     results = {}
@@ -164,7 +162,7 @@ def run_experiment(
     # Collections for scenario classification and disaggregated metrics
     scenario_classifications = {}
     scenario_type_stats = {}
-    scores_by_scenario_type = {}
+    scores_by_scenario_type: Dict[str, Dict[str, Any]] = {}
 
     for scenario_data in scenarios:
         scenario_name = scenario_data["name"]
@@ -175,7 +173,7 @@ def run_experiment(
         scenario_classifications[scenario_name] = classification
 
         # Track by scenario type
-        category = classification["scenario_category"]
+        category = classification["scenario_category"] or "unknown"
         if category not in scores_by_scenario_type:
             scores_by_scenario_type[category] = {
                 "scenarios": [],
@@ -230,8 +228,8 @@ def run_experiment(
     for category, data in scores_by_scenario_type.items():
         if data["count"] > 0:
             scenario_type_stats[category] = {
-                "avg_brier_single": np.mean(data["brier_scores_single"]),
-                "avg_brier_full": np.mean(data["brier_scores_full"]),
+                "avg_brier_single": float(np.mean(data["brier_scores_single"])),
+                "avg_brier_full": float(np.mean(data["brier_scores_full"])),
                 "count": data["count"],
                 "scenarios": data["scenarios"],
                 "classification": data["classification"],
@@ -466,7 +464,9 @@ def main(use_text_descriptions: bool = False):
     model = OpenAIModel(model="gpt-4.1", system_prompt=get_system_prompt())
 
     print(
-        f"🔬 Running experiments with {'text descriptions' if use_text_descriptions else 'images'} for facial expressions"
+        f"🔬 Running experiments with "
+        f"{'text descriptions' if use_text_descriptions else 'images'} "
+        f"for facial expressions"
     )
 
     # Experiment configurations
@@ -541,7 +541,7 @@ def main(use_text_descriptions: bool = False):
     suffix = "_text_desc" if use_text_descriptions else ""
     final_results_file = f"{curr_time}/final_results{suffix}.json"
 
-    with open(final_results_file, "w") as f:
+    with open(final_results_file, "w", encoding="utf-8") as f:
         json.dump(output_data, f, indent=2, default=str)
 
     print(f"\nResults saved to: {final_results_file}")
@@ -551,6 +551,7 @@ def main(use_text_descriptions: bool = False):
     with open(
         "/Users/eric/conformal/conformal_setup/experiments/comprehensive_results.json",
         "w",
+        encoding="utf-8",
     ) as f:
         json.dump(output_data, f, indent=2, default=str)
 

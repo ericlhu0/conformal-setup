@@ -3,8 +3,9 @@
 analysis."""
 
 import json
+import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,13 +13,13 @@ import pandas as pd
 import seaborn as sns
 
 
-def load_q1_data_from_results_dir(results_dir: str) -> tuple:
+def load_q1_data_from_results_dir(results_dir: str) -> Dict[str, Any]:
     """Load Q1 data from a specific results directory."""
-    import sys
-
+    # Keep imports local to avoid circular deps when this script runs standalone.
+    # Use top-level 'sys' to modify path without reimporting.
     sys.path.append(".")
 
-    from analyze_q1_disagreement import (
+    from analyze_q1_disagreement import (  # pylint: disable=import-outside-toplevel
         analyze_brier_scores_by_experiment_type,
         is_q1_scenario,
         organize_predictions_by_scenario,
@@ -32,7 +33,7 @@ def load_q1_data_from_results_dir(results_dir: str) -> tuple:
     if not config_path.exists():
         raise FileNotFoundError(f"ERROR: Q1 config file not found at {config_path}")
 
-    with open(config_path, "r") as f:
+    with open(config_path, "r", encoding="utf-8") as f:
         expert_data = json.load(f)
 
     # Load model predictions from specified results directory
@@ -42,7 +43,7 @@ def load_q1_data_from_results_dir(results_dir: str) -> tuple:
             f"ERROR: Final results file not found at {final_results_path}"
         )
 
-    with open(final_results_path, "r") as f:
+    with open(final_results_path, "r", encoding="utf-8") as f:
         final_results = json.load(f)
 
     # Extract Q1 experiment results
@@ -125,7 +126,9 @@ def load_both_modalities() -> tuple:
     return image_stats, text_stats
 
 
-def create_verbal_facial_matrix(summary_stats: Dict[str, Any]) -> pd.DataFrame:
+def create_verbal_facial_matrix(
+    summary_stats: Dict[str, Any],
+) -> tuple[Dict[tuple[str, str], Dict[str, Any]], List[str]]:
     """Create a matrix with verbal (rows) vs facial (columns) expressions."""
 
     # Define the order for consistent presentation
@@ -134,7 +137,7 @@ def create_verbal_facial_matrix(summary_stats: Dict[str, Any]) -> pd.DataFrame:
     # Initialize matrix data
     matrix_data = {}
 
-    for exp_type, stats in summary_stats.items():
+    for stats in summary_stats.values():
         verbal_level = stats.get("verbal_level", "unknown")
         facial_level = stats.get("facial_level", "unknown")
 
@@ -187,10 +190,18 @@ def create_verbal_facial_matrix(summary_stats: Dict[str, Any]) -> pd.DataFrame:
                 "mae_single": stats.get("mae_single_mean", np.nan),
                 "mae_full_std": stats.get("mae_full_std", np.nan),
                 "mae_single_std": stats.get("mae_single_std", np.nan),
-                "cosine_similarity_full": stats.get("cosine_similarity_full_mean", np.nan),
-                "cosine_similarity_single": stats.get("cosine_similarity_single_mean", np.nan),
-                "cosine_similarity_full_std": stats.get("cosine_similarity_full_std", np.nan),
-                "cosine_similarity_single_std": stats.get("cosine_similarity_single_std", np.nan),
+                "cosine_similarity_full": stats.get(
+                    "cosine_similarity_full_mean", np.nan
+                ),
+                "cosine_similarity_single": stats.get(
+                    "cosine_similarity_single_mean", np.nan
+                ),
+                "cosine_similarity_full_std": stats.get(
+                    "cosine_similarity_full_std", np.nan
+                ),
+                "cosine_similarity_single_std": stats.get(
+                    "cosine_similarity_single_std", np.nan
+                ),
                 "n_scenarios": stats.get("n_scenarios", 0),
             }
 
@@ -203,16 +214,15 @@ def create_heatmap(
     metric: str,
     title: str,
     filename: str,
-    fmt: str = ".3f",
     reverse_scale: bool = False,
     vmin=None,
     vmax=None,
     grayscale: bool = False,
     cmap_name: str | None = None,
     modality: str = "image",
-    subfolder: str = None,
+    subfolder: str | None = None,
 ):
-    """Create a heatmap with verbal (rows) vs facial (columns) expressions."""
+    """Create a heatmap with verbal (rows) vs facial (columns) expressions."""  # pylint: disable=too-many-positional-arguments
 
     # Create output directory relative to script location
     script_dir = Path(__file__).resolve().parent
@@ -305,7 +315,11 @@ def create_heatmap(
 
     modality_title = "Images" if modality == "image" else "Text Descriptions"
     plt.title(
-        f"Facial Expressions as {modality_title}\n{title}\nVerbal Expression (rows) vs Facial Expression (columns)",
+        (
+            f"Facial Expressions as {modality_title}\n"
+            f"{title}\n"
+            f"Verbal Expression (rows) vs Facial Expression (columns)"
+        ),
         fontsize=12,
         fontweight="bold",
     )
@@ -333,10 +347,16 @@ def create_heatmap(
         print(f"   {metric}:")
         print(f"     Agreement (diagonal) mean: {np.mean(diagonal_values):.3f}")
         print(
-            f"     Disagreement (off-diagonal) mean: {np.mean(off_diagonal_values):.3f}"
+            (
+                f"     Disagreement (off-diagonal) mean: "
+                f"{np.mean(off_diagonal_values):.3f}"
+            )
         )
         print(
-            f"     Agreement vs Disagreement difference: {np.mean(diagonal_values) - np.mean(off_diagonal_values):.3f}"
+            (
+                f"     Agreement vs Disagreement difference: "
+                f"{np.mean(diagonal_values) - np.mean(off_diagonal_values):.3f}"
+            )
         )
 
 
@@ -349,8 +369,8 @@ def get_combined_value_range(
 
     # Collect values from both datasets
     for matrix_data in [image_matrix_data, text_matrix_data]:
-        for i, verbal in enumerate(levels):
-            for j, facial in enumerate(levels):
+        for verbal in levels:
+            for facial in levels:
                 if (verbal, facial) in matrix_data:
                     value = matrix_data[(verbal, facial)].get(metric, np.nan)
                     if not np.isnan(value):
@@ -369,14 +389,13 @@ def create_comparison_heatmap(
     metric: str,
     title: str,
     filename: str,
-    fmt: str = ".3f",
     reverse_scale: bool = False,
     vmin=None,
     vmax=None,
     grayscale: bool = False,
     cmap_name: str | None = None,
 ):
-    """Create side-by-side comparison heatmaps for image vs text modalities."""
+    """Create side-by-side comparison heatmaps for image vs text modalities."""  # pylint: disable=too-many-positional-arguments
 
     # Create output directory relative to script location
     script_dir = Path(__file__).resolve().parent
@@ -569,12 +588,18 @@ def create_comparison_heatmap(
 
     if image_diagonal and image_off_diagonal:
         print(
-            f"     Image - Agreement mean: {np.mean(image_diagonal):.3f}, Disagreement mean: {np.mean(image_off_diagonal):.3f}"
+            (
+                f"     Image - Agreement mean: {np.mean(image_diagonal):.3f}, "
+                f"Disagreement mean: {np.mean(image_off_diagonal):.3f}"
+            )
         )
 
     if text_diagonal and text_off_diagonal:
         print(
-            f"     Text - Agreement mean: {np.mean(text_diagonal):.3f}, Disagreement mean: {np.mean(text_off_diagonal):.3f}"
+            (
+                f"     Text - Agreement mean: {np.mean(text_diagonal):.3f}, "
+                f"Disagreement mean: {np.mean(text_off_diagonal):.3f}"
+            )
         )
 
     # Overall comparison
@@ -590,7 +615,10 @@ def create_comparison_heatmap(
         ):
             better_modality = "Text" if image_avg > text_avg else "Image"
         print(
-            f"     Better overall performance: {better_modality} (Image: {image_avg:.3f}, Text: {text_avg:.3f})"
+            (
+                f"     Better overall performance: {better_modality} "
+                f"(Image: {image_avg:.3f}, Text: {text_avg:.3f})"
+            )
         )
 
 
@@ -603,7 +631,7 @@ def create_all_heatmaps(matrix_data: Dict, levels: list, modality: str = "image"
     )
 
     # Key metrics for regular heatmaps - comprehensive set
-    metrics_to_create = [
+    metrics_to_create: List[tuple[str, str, bool, float, float, str | None]] = [
         (
             "brier_full_mean",
             "Brier Score - Full Output (Dark = Better)",
@@ -725,37 +753,45 @@ def create_all_heatmaps(matrix_data: Dict, levels: list, modality: str = "image"
         )
 
     # Add entropy difference metrics
-    metrics_to_create.extend(
-        [
-            (
-                "entropy_diff_full",
-                "Entropy Diff – Full (Pred − Label)",
-                None,
-                -1.0,
-                1.0,
-                "RdBu_r",
-            ),
-            (
-                "entropy_diff_single",
-                "Entropy Diff – Single (Pred − Label)",
-                None,
-                -1.0,
-                1.0,
-                "RdBu_r",
-            ),
-        ]
-    )
+    entropy_metrics: List[tuple[str, str, bool, float, float, str | None]] = [
+        (
+            "entropy_diff_full",
+            "Entropy Diff – Full (Pred − Label)",
+            False,
+            -1.0,
+            1.0,
+            "RdBu_r",
+        ),
+        (
+            "entropy_diff_single",
+            "Entropy Diff – Single (Pred − Label)",
+            False,
+            -1.0,
+            1.0,
+            "RdBu_r",
+        ),
+    ]
+    metrics_to_create.extend(entropy_metrics)
+    metrics_to_create.extend([])
 
     # Create all heatmaps
     for metric, title, reverse_scale, vmin, vmax, cmap_name in metrics_to_create:
         # Determine which folder based on metric type
-        if metric.endswith("_full") or metric.endswith("_full_mean") or "diff_full" in metric:
+        if (
+            metric.endswith("_full")
+            or metric.endswith("_full_mean")
+            or "diff_full" in metric
+        ):
             folder_name = "full_output"
-        elif metric.endswith("_single") or metric.endswith("_single_mean") or "diff_single" in metric:
+        elif (
+            metric.endswith("_single")
+            or metric.endswith("_single_mean")
+            or "diff_single" in metric
+        ):
             folder_name = "single_token"
         else:
             folder_name = "other_metrics"
-        
+
         create_heatmap(
             matrix_data,
             levels,
@@ -858,7 +894,7 @@ def create_all_comparison_heatmaps(
 
     # Compute entropy differences for comparison
     for matrix_data in [image_matrix_data, text_matrix_data]:
-        for key, vals in matrix_data.items():
+        for vals in matrix_data.values():
             ef = vals.get("entropy_full_mean", np.nan)
             es = vals.get("entropy_single_mean", np.nan)
             el = vals.get("entropy_labels_mean", np.nan)
@@ -875,14 +911,14 @@ def create_all_comparison_heatmaps(
             (
                 "entropy_diff_full",
                 "Entropy Diff – Full (Pred − Label)",
-                None,
+                False,
                 -1.0,
                 1.0,
             ),
             (
                 "entropy_diff_single",
                 "Entropy Diff – Single (Pred − Label)",
-                None,
+                False,
                 -1.0,
                 1.0,
             ),
@@ -1141,7 +1177,10 @@ def create_output_comparison_heatmaps(
             sample_key = next(iter(matrix_data))
             available_keys = list(matrix_data[sample_key].keys())
             print(
-                f"   DEBUG: Available keys in matrix_data: {[k for k in available_keys if 'entropy' in k]}"
+                (
+                    f"   DEBUG: Available keys in matrix_data: "
+                    f"{[k for k in available_keys if 'entropy' in k]}"
+                )
             )
 
         for i, verbal in enumerate(levels):
@@ -1266,7 +1305,10 @@ def create_output_comparison_heatmaps(
 
         # Set main title with better positioning
         fig.suptitle(
-            f"Facial Expressions as {modality_title}\nFull vs Single Output Comparison: {title}",
+            (
+                f"Facial Expressions as {modality_title}\n"
+                f"Full vs Single Output Comparison: {title}"
+            ),
             fontsize=14,
             fontweight="bold",
             y=0.95,
@@ -1294,11 +1336,17 @@ def create_output_comparison_heatmaps(
             print(f"   DEBUG: Single matrix has {len(single_values)} non-NaN values")
             if len(full_values) > 0:
                 print(
-                    f"   DEBUG: Full values range: {np.min(full_values):.3f} to {np.max(full_values):.3f}"
+                    (
+                        f"   DEBUG: Full values range: {np.min(full_values):.3f} "
+                        f"to {np.max(full_values):.3f}"
+                    )
                 )
             if len(single_values) > 0:
                 print(
-                    f"   DEBUG: Single values range: {np.min(single_values):.3f} to {np.max(single_values):.3f}"
+                    (
+                        f"   DEBUG: Single values range: {np.min(single_values):.3f} "
+                        f"to {np.max(single_values):.3f}"
+                    )
                 )
 
         if len(full_values) > 0 and len(single_values) > 0:
@@ -1331,7 +1379,8 @@ def main(
         create_comparison: If True, create comparison heatmaps
         use_image: If True, create heatmaps for image modality only
         use_text: If True, create heatmaps for text modality only
-        comparison_type: Type of comparison - "modality" (image vs text) or "output" (single vs full)
+        comparison_type: Type of comparison - "modality" (image vs text)
+            or "output" (single vs full)
     """
 
     print("🚀 Starting verbal vs facial expression heatmap analysis...")
@@ -1351,17 +1400,21 @@ def main(
             # Create modality comparison heatmaps
             create_all_comparison_heatmaps(image_matrix_data, text_matrix_data, levels)
 
-            print(f"\n✅ Modality comparison heatmap analysis completed!")
-            print(f"   Generated comparison heatmaps showing image vs text performance")
+            print("\n✅ Modality comparison heatmap analysis completed!")
+            print("   Generated comparison heatmaps showing image vs text performance")
             print(
-                f"   Side-by-side plots with unified color scaling for direct comparison"
+                (
+                    "   Side-by-side plots with unified color scaling "
+                    "for direct comparison"
+                )
             )
 
         elif comparison_type == "output":
             print(
                 "📊 Loading Q1 analysis results for single vs full output comparison..."
             )
-            # Default to image modality for output comparison, but could be extended to support --modality flag
+            # Default to image modality for output comparison, but could be
+            # extended to support --modality flag
             modality = "image"  # Could make this configurable in the future
             results_dir = f"{modality}_facial_expression_results"
 
@@ -1373,16 +1426,25 @@ def main(
 
             # Create output comparison heatmaps
             print(
-                f"\n🔍 Creating single vs full output comparison heatmaps for {modality} modality..."
+                (
+                    f"\n🔍 Creating single vs full output comparison heatmaps "
+                    f"for {modality} modality..."
+                )
             )
             create_output_comparison_heatmaps(matrix_data, levels, modality)
 
-            print(f"\n✅ Output comparison heatmap analysis completed!")
+            print("\n✅ Output comparison heatmap analysis completed!")
             print(
-                f"   Generated comparison heatmaps showing single vs full output for {modality} modality"
+                (
+                    f"   Generated comparison heatmaps showing single vs full "
+                    f"output for {modality} modality"
+                )
             )
             print(
-                f"   Side-by-side plots with unified color scaling for direct comparison"
+                (
+                    "   Side-by-side plots with unified color scaling "
+                    "for direct comparison"
+                )
             )
 
     elif use_image:
@@ -1400,12 +1462,15 @@ def main(
         # Create all heatmaps
         create_all_heatmaps(matrix_data, levels, modality="image")
 
-        print(f"\n✅ Image modality heatmap analysis completed!")
+        print("\n✅ Image modality heatmap analysis completed!")
         print(
-            f"   Generated heatmaps showing performance across verbal/facial combinations"
+            (
+                "   Generated heatmaps showing performance across "
+                "verbal/facial combinations"
+            )
         )
         print(
-            f"   Diagonal = agreement scenarios, off-diagonal = disagreement scenarios"
+            "   Diagonal = agreement scenarios, off-diagonal = disagreement scenarios"
         )
 
     elif use_text:
@@ -1423,12 +1488,15 @@ def main(
         # Create all heatmaps
         create_all_heatmaps(matrix_data, levels, modality="text")
 
-        print(f"\n✅ Text modality heatmap analysis completed!")
+        print("\n✅ Text modality heatmap analysis completed!")
         print(
-            f"   Generated heatmaps showing performance across verbal/facial combinations"
+            (
+                "   Generated heatmaps showing performance across "
+                "verbal/facial combinations"
+            )
         )
         print(
-            f"   Diagonal = agreement scenarios, off-diagonal = disagreement scenarios"
+            "   Diagonal = agreement scenarios, off-diagonal = disagreement scenarios"
         )
 
     else:
@@ -1466,7 +1534,10 @@ if __name__ == "__main__":
         "--type",
         choices=["modality", "output"],
         default="modality",
-        help="Type of comparison: 'modality' (image vs text) or 'output' (single vs full)",
+        help=(
+            "Type of comparison: 'modality' (image vs text) "
+            "or 'output' (single vs full)"
+        ),
     )
 
     args = parser.parse_args()
@@ -1476,13 +1547,13 @@ if __name__ == "__main__":
     if flags_set > 1:
         print("❌ Error: Please specify only one of --comparison, --image, or --text")
         parser.print_help()
-        exit(1)
+        sys.exit(1)
 
     # Validate argument combination
     if args.type == "output" and not args.comparison:
         print("❌ Error: --type output requires --comparison flag")
         parser.print_help()
-        exit(1)
+        sys.exit(1)
 
     main(
         create_comparison=args.comparison,

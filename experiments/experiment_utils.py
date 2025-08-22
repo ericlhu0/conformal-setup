@@ -4,11 +4,17 @@ import json
 import os
 import textwrap
 import uuid
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import numpy as np
 
 from safe_feedback_interpretation.models.openai_model import BaseModel
+
+# Pylint adjustments for this utilities module to avoid refactors that would
+# risk changing behavior in experiments.
+# - Some functions intentionally accept multiple positional args.
+# - Some branches keep explicit else after return for clarity in logs.
+# pylint: disable=no-else-return
 
 
 def save_incremental_result(result: Dict[str, Any], output_file: str) -> None:
@@ -26,18 +32,18 @@ def save_incremental_result(result: Dict[str, Any], output_file: str) -> None:
         exist_ok=True,
     )
 
-    with open(output_file, "a") as f:
+    with open(output_file, "a", encoding="utf-8") as f:
         json.dump(result, f)
         f.write("\n")
 
 
-def create_input_metadata(
+def create_input_metadata(  # pylint: disable=too-many-positional-arguments,unused-argument
     scenario_name: str,
     experiment_name: str,
     input_context: Dict[str, Any],
     received_feedback: Dict[str, Any],
     query_type: str,
-    facial_description_prompted: str = None,
+    facial_description_prompted: str | None = None,
 ) -> Dict[str, Any]:
     """Create metadata about the input.
 
@@ -47,12 +53,13 @@ def create_input_metadata(
         input_context: Input context dictionary
         received_feedback: Received feedback dictionary
         query_type: Type of query (e.g., 'body_part_full', 'joint_range_single', etc.)
-        facial_description_prompted: The actual facial description text that was prompted to the model
+        facial_description_prompted: The actual facial description text that was
+            prompted to the model
 
     Returns:
         Dictionary with input metadata
     """
-    return {
+    return {  # pylint: disable=unused-argument
         "scenario_name": scenario_name,
         "query_type": query_type,
         "has_image": received_feedback.get("facial_expression", {}).get("modality")
@@ -167,11 +174,11 @@ def get_comfort_level_prediction(
     model: BaseModel,
     text_input: str,
     body_part: str,
-    incremental_file: str = None,
-    input_metadata: Dict[str, Any] = None,
+    incremental_file: str | None = None,
+    input_metadata: Dict[str, Any] | None = None,
     image_input: Optional[str] = None,
 ) -> Dict[int, float]:
-    """Get comfort level prediction for a specific body part."""
+    """Get comfort level prediction for a specific body part."""  # pylint: disable=too-many-positional-arguments
     if not model:
         raise ValueError("ERROR: No model provided to get_comfort_level_prediction!")
     if not text_input:
@@ -181,7 +188,13 @@ def get_comfort_level_prediction(
     if not body_part:
         raise ValueError("ERROR: No body part specified for comfort level prediction!")
 
-    prompt = f"\n\nWhat is the updated comfort threshold level (1-5 scale) for the {body_part}? Answer in JSON format with probability distribution over levels 1, 2, 3, 4, 5. So the keys of your outputted JSON should be 1, 2, 3, 4, 5. Do not use any formatting, enclose key names in quotes, do not nest dictionaries and do not use any other keys."
+    prompt = (
+        f"\n\nWhat is the updated comfort threshold level (1-5 scale) for the "
+        f"{body_part}? Answer in JSON format with probability distribution over "
+        f"levels 1, 2, 3, 4, 5. So the keys of your outputted JSON should be 1, 2, "
+        f"3, 4, 5. Do not use any formatting, enclose key names in quotes, do not "
+        f"nest dictionaries and do not use any other keys."
+    )
 
     try:
         print(f"🔍 Querying model for {body_part} comfort level (full output)...")
@@ -253,25 +266,29 @@ def get_comfort_level_single_token_prediction(
     model: BaseModel,
     text_input: str,
     body_part: str,
-    incremental_file: str = None,
-    input_metadata: Dict[str, Any] = None,
+    incremental_file: str | None = None,
+    input_metadata: Dict[str, Any] | None = None,
     image_input: Optional[str] = None,
 ) -> Dict[int, float]:
-    """Get comfort level prediction using single token approach."""
+    """Get comfort level prediction using single token approach."""  # pylint: disable=too-many-positional-arguments
     if not model:
         raise ValueError(
             "ERROR: No model provided to get_comfort_level_single_token_prediction!"
         )
     if not text_input:
         raise ValueError(
-            "ERROR: No text input provided to get_comfort_level_single_token_prediction!"
+            "ERROR: No text input provided to "
+            "get_comfort_level_single_token_prediction!"
         )
     if not body_part:
         raise ValueError(
             "ERROR: No body part specified for single token comfort level prediction!"
         )
 
-    prompt = f"\n\nWhat is the updated comfort threshold (1-5 scale) for the {body_part}? Answer with only a single threshold value."
+    prompt = (
+        f"\n\nWhat is the updated comfort threshold (1-5 scale) for the {body_part}? "
+        f"Answer with only a single threshold value."
+    )
 
     try:
         print(f"🔍 Querying model for {body_part} comfort level (single token)...")
@@ -298,18 +315,27 @@ def get_comfort_level_single_token_prediction(
                     comfort_probs[int(token_str)] = float(prob)
             except (ValueError, TypeError) as e:
                 print(
-                    f"🔹 Warning: Could not parse token '{token}' with prob {prob} for {body_part}: {e}"
+                    (
+                        f"🔹 Warning: Could not parse token '{token}' with prob "
+                        f"{prob} for {body_part}: {e}"
+                    )
                 )
                 continue
 
         total_prob = sum(comfort_probs.values())
         print(
-            f"✅ Single token probs for {body_part}: {comfort_probs} (total: {total_prob:.3f})"
+            (
+                f"✅ Single token probs for {body_part}: {comfort_probs} "
+                f"(total: {total_prob:.3f})"
+            )
         )
 
         if total_prob < 0.01:  # Very low total probability
             print(
-                f"🚨 WARNING: Very low total probability ({total_prob:.3f}) for {body_part} single token prediction!"
+                (
+                    f"🚨 WARNING: Very low total probability ({total_prob:.3f}) for "
+                    f"{body_part} single token prediction!"
+                )
             )
 
         # Save incremental result with cleaned probabilities
@@ -329,7 +355,10 @@ def get_comfort_level_single_token_prediction(
 
     except Exception as e:
         print(
-            f"🚨 ERROR: Failed to get single token comfort level prediction for {body_part}: {e}"
+            (
+                f"🚨 ERROR: Failed to get single token comfort level prediction for "
+                f"{body_part}: {e}"
+            )
         )
         print(f"🚨 Exception type: {type(e).__name__}")
         print(f"🚨 Using uniform fallback distribution for {body_part}")
@@ -338,7 +367,10 @@ def get_comfort_level_single_token_prediction(
 
 def get_clarification_prediction(model: BaseModel, text_input: str) -> float:
     """Get ask clarification prediction (boolean as probability)."""
-    prompt = "\n\nShould the system ask for clarification from the user? Answer with only 'true' or 'false'."
+    prompt = (
+        "\n\nShould the system ask for clarification from the user? "
+        "Answer with only 'true' or 'false'."
+    )
 
     single_token_result = model.get_last_single_token_logits(text_input + prompt)
 
@@ -363,20 +395,23 @@ def get_clarification_prediction(model: BaseModel, text_input: str) -> float:
 def get_verbalized_uncertainty(
     model: BaseModel,
     text_input: str,
-    incremental_file: str = None,
-    input_metadata: Dict[str, Any] = None,
+    incremental_file: str | None = None,
+    input_metadata: Dict[str, Any] | None = None,
     image_input: Optional[str] = None,
 ) -> float:
-    """Get model's verbalized uncertainty about its predictions."""
+    """Get model's verbalized uncertainty about its predictions."""  # pylint: disable=too-many-positional-arguments
     if not model:
         raise ValueError("ERROR: No model provided to get_verbalized_uncertainty!")
     if not text_input:
         raise ValueError("ERROR: No text input provided to get_verbalized_uncertainty!")
 
-    prompt = "\n\nHow confident are you in your assessment? Answer with a number between 0 (completely uncertain) and 1 (completely certain)."
+    prompt = (
+        "\n\nHow confident are you in your assessment? Answer with a number between 0 "
+        "(completely uncertain) and 1 (completely certain)."
+    )
 
     try:
-        print(f"🔍 Querying model for verbalized uncertainty...")
+        print("🔍 Querying model for verbalized uncertainty...")
         if image_input:
             print(f"🖼️  Including image input: {image_input}")
         response = model.get_full_output(text_input + prompt, image_input)
@@ -389,7 +424,7 @@ def get_verbalized_uncertainty(
         print(f"📤 Verbalized uncertainty response: {response}")
 
         # Extract number from response
-        import re
+        import re  # pylint: disable=import-outside-toplevel
 
         numbers = re.findall(r"0\.\d+|1\.0|0|1", response)
         if numbers:
@@ -413,7 +448,10 @@ def get_verbalized_uncertainty(
                     return confidence
                 else:
                     print(
-                        f"🚨 ERROR: Confidence value {confidence} outside valid range [0,1]!"
+                        (
+                            f"🚨 ERROR: Confidence value {confidence} outside valid "
+                            f"range [0,1]!"
+                        )
                     )
             except ValueError as e:
                 print(f"🚨 ERROR: Could not convert '{numbers[0]}' to float: {e}")
@@ -421,7 +459,7 @@ def get_verbalized_uncertainty(
         print(
             f"🚨 WARNING: Could not extract valid confidence from response: '{response}'"
         )
-        print(f"🚨 Using default confidence of 0.5")
+        print("🚨 Using default confidence of 0.5")
 
         # Save incremental result with fallback
         if incremental_file and input_metadata:
@@ -441,7 +479,7 @@ def get_verbalized_uncertainty(
     except Exception as e:
         print(f"🚨 ERROR: Failed to get verbalized uncertainty: {e}")
         print(f"🚨 Exception type: {type(e).__name__}")
-        print(f"🚨 Using default confidence of 0.5")
+        print("🚨 Using default confidence of 0.5")
         return 0.5
 
 
@@ -461,7 +499,7 @@ def get_image_input(config: Dict, use_text_descriptions: bool = False) -> Option
         image_path = facial_expr.get("description")
         if image_path and not image_path.startswith("/"):
             # Convert relative path to absolute path from experiments directory
-            from pathlib import Path
+            from pathlib import Path  # pylint: disable=import-outside-toplevel
 
             experiments_dir = Path(__file__).resolve().parent
             return str(experiments_dir / image_path)
@@ -497,23 +535,45 @@ def create_text_input(
                     f"Facial expression description: {text_description}"
                 )
             else:
-                facial_description = f"modality='text_fallback', description='{facial_expr.get('description')}' (no mapping found for {filename})"
+                facial_description = (
+                    f"modality='text_fallback', description="
+                    f"'{facial_expr.get('description')}' (no mapping found "
+                    f"for {filename})"
+                )
         else:
-            facial_description = "Please examine the provided facial expression image to assess the person's comfort level."
+            facial_description = (
+                "Please examine the provided facial expression image to assess the "
+                "person's comfort level."
+            )
     else:
-        facial_description = f"modality='{facial_expr.get('modality')}', description='{facial_expr.get('description')}'"
+        facial_description = (
+            f"modality='{facial_expr.get('modality')}', "
+            f"description='{facial_expr.get('description')}'"
+        )
+
+    # Precompute values to keep f-string lines short (preserves output text)
+    cad = config["input_context"]["current_action_description"]
+    cf = config["input_context"]["current_state"]["contact_forces"]
+    ja = config["input_context"]["current_state"]["joint_angles_deg"]
+    ct = config["input_context"]["current_comfort_threshold"][
+        "current_comfort_threshold"
+    ]
+    cj = config["input_context"]["current_comfort_threshold"][
+        "current_comfortable_joint_range_deg"
+    ]
+    vf = config["received_feedback"]["verbal_feedback"]["description"]
 
     return textwrap.dedent(
         f"""
-        Current action description: {config['input_context']['current_action_description']}
+        Current action description: {cad}
         Current state:
-          Contact forces: {config['input_context']['current_state']['contact_forces']}
-          Joint angles (deg): {config['input_context']['current_state']['joint_angles_deg']}
+          Contact forces: {cf}
+          Joint angles (deg): {ja}
         Current comfort threshold:
-          Comfort threshold: {config['input_context']['current_comfort_threshold']['current_comfort_threshold']}
-          Comfortable joint range (deg): {config['input_context']['current_comfort_threshold']['current_comfortable_joint_range_deg']}
+          Comfort threshold: {ct}
+          Comfortable joint range (deg): {cj}
         Received feedback:
-          Verbal feedback: {config['received_feedback']['verbal_feedback']['description']}
+          Verbal feedback: {vf}
           Facial expression: {facial_description}
     """
     ).strip()
@@ -526,7 +586,8 @@ def get_facial_description_for_metadata(
 ) -> str:
     """Get the facial description that should be saved in metadata.
 
-    For images: saves the image path when use_text_descriptions=False, saves the text description when use_text_descriptions=True
+    For images: saves the image path when use_text_descriptions=False,
+    saves the text description when use_text_descriptions=True
     For text: saves the original text description
     """
     facial_expr = config.get("received_feedback", {}).get("facial_expression", {})
@@ -542,7 +603,10 @@ def get_facial_description_for_metadata(
             if text_description:
                 return text_description
             else:
-                return f"text_fallback: {facial_expr.get('description')} (no mapping found for {filename})"
+                return (
+                    f"text_fallback: {facial_expr.get('description')} "
+                    f"(no mapping found for {filename})"
+                )
         else:
             # For image mode, save the image path
             return facial_expr.get("description", "")
@@ -553,6 +617,7 @@ def get_facial_description_for_metadata(
 
 def get_system_prompt() -> str:
     """Get the standard system prompt for all experiments."""
+    # pylint: disable=line-too-long
     return textwrap.dedent(
         """\
         You are a domain expert with many years of combined experience in occupational therapy, physical therapy, caregiving, rehabilitation science, biomechanics, anatomy, disabilities, elderly care, and assistive technology, including human-centered robotics.
@@ -587,20 +652,25 @@ def get_system_prompt() -> str:
 
 def load_experiment_configs(config_file: str) -> Dict:
     """Load experiment configurations from JSON file."""
-    with open(config_file, "r") as f:
+    with open(config_file, "r", encoding="utf-8") as f:
         return json.load(f)
 
 
+# pylint: disable-next=too-many-positional-arguments
 def run_uncertainty_analysis(
     model: BaseModel,
     config: Dict,
     scenario_label: str,
-    incremental_file: str = None,
+    incremental_file: str | None = None,
     experiment_name: str = "unknown",
     use_text_descriptions: bool = False,
     img_to_text_map: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
-    """Run comprehensive uncertainty analysis for a scenario - matches expsv2.py analysis."""
+    """Run comprehensive uncertainty analysis for a scenario.  # pylint:
+    disable=too-many-positional-arguments.
+
+    Matches the behavior of the previous expsv2.py analysis.
+    """
     if not model:
         raise ValueError("ERROR: No model provided to run_uncertainty_analysis!")
     if not config:
@@ -616,7 +686,10 @@ def run_uncertainty_analysis(
         text_input = create_text_input(config, use_text_descriptions, img_to_text_map)
         if not text_input:
             raise ValueError(
-                f"ERROR: create_text_input returned empty text for scenario {scenario_label}!"
+                (
+                    f"ERROR: create_text_input returned empty text for scenario "
+                    f"{scenario_label}!"
+                )
             )
 
         # Get facial description for metadata
@@ -628,11 +701,17 @@ def run_uncertainty_analysis(
         image_input = get_image_input(config, use_text_descriptions)
         if image_input:
             print(
-                f"🖼️  Detected image input for scenario {scenario_label}: {image_input}"
+                (
+                    f"🖼️  Detected image input for scenario {scenario_label}: "
+                    f"{image_input}"
+                )
             )
         elif use_text_descriptions:
             print(
-                f"📝 Using text descriptions instead of images for scenario {scenario_label}"
+                (
+                    f"📝 Using text descriptions instead of images for scenario "
+                    f"{scenario_label}"
+                )
             )
     except Exception as e:
         raise Exception(
@@ -710,12 +789,18 @@ def run_uncertainty_analysis(
                     print(f"✅ Calculated Brier scores for {body_part}")
                 except Exception as brier_err:
                     print(
-                        f"🚨 ERROR: Failed to calculate Brier scores for {body_part}: {brier_err}"
+                        (
+                            f"🚨 ERROR: Failed to calculate Brier scores for "
+                            f"{body_part}: {brier_err}"
+                        )
                     )
                     print(f"🚨 Labels: {labels.get(body_part, 'None')}")
             else:
                 print(
-                    f"🔹 No labels found for {body_part} - skipping Brier score calculation"
+                    (
+                        f"🔹 No labels found for {body_part} - skipping Brier "
+                        f"score calculation"
+                    )
                 )
 
         except Exception as e:

@@ -2,17 +2,25 @@
 Q1 Disagreement Analysis: Speech vs Facial Expression Disagreement
 
 This module analyzes how model uncertainty and classification accuracy change
-when speech and facial expressions disagree in assistive robotics feedback interpretation.
+when speech and facial expressions disagree in assistive robotics
+feedback interpretation.
 
-Research Question: How unconfident is the model when there is disagreement between speech and facial expression?
+Research Question: How unconfident is the model when there is disagreement
+between speech and facial expression?
 """
 
 import json
 import warnings
+from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
+
+# Pylint tuning for this analysis script (safe: names reused across sections)
+# - We intentionally reuse names across analysis stages.
+# - We fix the expert_data name issue below; the rest are benign redefinitions.
+# pylint: disable=redefined-outer-name
 
 # Manual implementation of classification metrics
 
@@ -38,7 +46,6 @@ def calculate_label_probability_mass(
     total_mass = 0.0
     for class_label, true_prob in true_labels.items():
         predicted_prob = predicted_probs.get(class_label, 0.0)
-        # Take minimum - predicted probability can't exceed the true label 'bucket' capacity
         total_mass += min(predicted_prob, true_prob)
     return total_mass
 
@@ -46,7 +53,9 @@ def calculate_label_probability_mass(
 warnings.filterwarnings("ignore")
 
 
-def load_q1_data() -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+def load_q1_data() -> (
+    Tuple[Dict[str, Any], List[Dict[str, Any]], Dict[str, Dict[str, Any]]]
+):
     """Load Q1 disagreement data from both expert labels and model predictions.
 
     Returns:
@@ -61,10 +70,11 @@ def load_q1_data() -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
     if not config_path.exists():
         raise FileNotFoundError(f"ERROR: Q1 config file not found at {config_path}")
 
-    with open(config_path, "r") as f:
-        expert_data = json.load(f)
+    with open(config_path, "r", encoding="utf-8") as f:
+        config_data = json.load(f)
 
-    print(f"✅ Loaded expert labels for {len(expert_data['scenarios'])} scenarios")
+    # Use the loaded config_data (expert_data was incorrect and unused here)
+    print(f"✅ Loaded expert labels for {len(config_data['scenarios'])} scenarios")
 
     # Load model predictions from final results
     final_results_path = (
@@ -78,7 +88,7 @@ def load_q1_data() -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
             f"ERROR: Final results file not found at {final_results_path}"
         )
 
-    with open(final_results_path, "r") as f:
+    with open(final_results_path, "r", encoding="utf-8") as f:
         final_results = json.load(f)
 
     # Extract Q1 experiment results
@@ -125,12 +135,13 @@ def load_q1_data() -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
                     )
 
     print(
-        f"✅ Loaded {len(final_results_list)} Q1 model prediction queries from final results"
+        f"✅ Loaded {len(final_results_list)} Q1 model prediction queries "
+        f"from final results"
     )
 
     # Parse scenario classifications
     scenarios_by_type = {}
-    for scenario in expert_data["scenarios"]:
+    for scenario in config_data["scenarios"]:
         scenario_name = scenario["name"]
         scenario_type = parse_scenario_classification(scenario_name)
         scenarios_by_type[scenario_name] = {
@@ -140,7 +151,7 @@ def load_q1_data() -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         }
 
     print(f"✅ Parsed {len(scenarios_by_type)} scenario classifications")
-    return expert_data, final_results_list, scenarios_by_type
+    return config_data, final_results_list, scenarios_by_type
 
 
 def is_q1_scenario(scenario_name: str) -> bool:
@@ -212,7 +223,7 @@ def organize_predictions_by_scenario(
     """
     print("📊 Organizing model predictions by scenario...")
 
-    organized = {}
+    organized: Dict[str, Dict[str, Dict[str, Any]]] = {}
 
     for result in final_results_list:
         try:
@@ -279,7 +290,9 @@ def get_true_class(labels_dict: Dict[str, float]) -> str:
     return max(labels_dict.items(), key=lambda x: x[1])[0]
 
 
-def calculate_classification_metrics(y_true, y_pred):
+def calculate_classification_metrics(
+    y_true: List[str], y_pred: List[str]
+) -> tuple[float, float, float]:
     """Calculate precision, recall, and F1 score manually with macro
     averaging."""
     # Get unique classes
@@ -319,7 +332,7 @@ def calculate_classification_metrics(y_true, y_pred):
     return macro_precision, macro_recall, macro_f1
 
 
-def calculate_precision_for_true_class(y_true, y_pred):
+def calculate_precision_for_true_class(y_true: List[str], y_pred: List[str]) -> float:
     """Calculate precision for the true class in a single-class experiment."""
     if len(y_true) != len(y_pred) or len(y_true) == 0:
         return np.nan
@@ -338,11 +351,10 @@ def calculate_precision_for_true_class(y_true, y_pred):
         1 for t, p in zip(y_true, y_pred) if t == true_class and p == true_class
     )
 
-    # Precision = TP / (TP + FP) = correct predictions of true class / all predictions of true class
     return correct_predictions_of_true_class / predictions_of_true_class
 
 
-def calculate_mae(y_true, y_pred):
+def calculate_mae(y_true: List[str], y_pred: List[str]) -> float:
     """Calculate Mean Absolute Error between predicted and true integer
     classes."""
     if len(y_true) != len(y_pred):
@@ -350,17 +362,23 @@ def calculate_mae(y_true, y_pred):
 
     # Convert classes to integers for distance calculation
     try:
-        true_ints = [int(cls) for cls in y_true]
-        pred_ints = [int(cls) for cls in y_pred]
+        # Map class labels to integers for ordinal calculation
+        class_map = {"comfortable": 0, "mildly_uncomfortable": 1, "uncomfortable": 2}
+        true_ints = [
+            class_map.get(cls, int(cls) if cls.isdigit() else 0) for cls in y_true
+        ]
+        pred_ints = [
+            class_map.get(cls, int(cls) if cls.isdigit() else 0) for cls in y_pred
+        ]
 
         # Calculate absolute differences and return mean
         absolute_errors = [abs(t - p) for t, p in zip(true_ints, pred_ints)]
-        return np.mean(absolute_errors)
+        return float(np.mean(absolute_errors))
     except (ValueError, TypeError):
         return np.nan
 
 
-def calculate_accuracy(y_true, y_pred):
+def calculate_accuracy(y_true: List[str], y_pred: List[str]) -> float:
     """Calculate simple accuracy (proportion of correct predictions)."""
     if len(y_true) != len(y_pred):
         return np.nan
@@ -376,8 +394,8 @@ def calculate_accuracy(y_true, y_pred):
 def calculate_cosine_similarity(
     predicted_probs: Dict[str, float], true_labels: Dict[str, float]
 ) -> float:
-    """Calculate cosine similarity between predicted probability distribution and
-    true labels.
+    """Calculate cosine similarity between predicted probability distribution
+    and true labels.
 
     Args:
         predicted_probs: Dict mapping categories to predicted probabilities
@@ -395,13 +413,13 @@ def calculate_cosine_similarity(
     # Calculate cosine similarity
     pred_norm = np.linalg.norm(pred_array)
     true_norm = np.linalg.norm(true_array)
-    
+
     if pred_norm == 0 or true_norm == 0:
         return 0.0  # Handle zero vectors
-    
+
     dot_product = np.dot(pred_array, true_array)
     cosine_sim = dot_product / (pred_norm * true_norm)
-    
+
     return cosine_sim
 
 
@@ -512,9 +530,9 @@ def analyze_brier_scores_by_experiment_type(
                             label_prob_mass
                         )
                         results_by_type[experiment_type]["mae_full"].append(mae)
-                        results_by_type[experiment_type]["cosine_similarity_full"].append(
-                            cosine_sim
-                        )
+                        results_by_type[experiment_type][
+                            "cosine_similarity_full"
+                        ].append(cosine_sim)
                     else:
                         results_by_type[experiment_type]["brier_scores_single"].append(
                             brier_score
@@ -529,11 +547,10 @@ def analyze_brier_scores_by_experiment_type(
                             "label_prob_mass_single"
                         ].append(label_prob_mass)
                         results_by_type[experiment_type]["mae_single"].append(mae)
-                        results_by_type[experiment_type]["cosine_similarity_single"].append(
-                            cosine_sim
-                        )
+                        results_by_type[experiment_type][
+                            "cosine_similarity_single"
+                        ].append(cosine_sim)
 
-                    # True class is the same for both query types, so add it once per scenario
                     if query_type == "body_part_full":
                         results_by_type[experiment_type]["true_classes"].append(
                             true_class
@@ -570,9 +587,10 @@ def analyze_brier_scores_by_experiment_type(
                 if score_type == "brier_scores_single" and len(scores) > 1:
                     std_val = np.std(scores, ddof=1)
                     if std_val < 0.001:  # Very small or zero std
-                        unique_scores = len(set([round(s, 8) for s in scores]))
+                        unique_scores = len({round(s, 8) for s in scores})
                         print(
-                            f"⚠️  {exp_type}: Single token std={std_val:.6f}, {unique_scores} unique values (n={len(scores)})"
+                            f"⚠️  {exp_type}: Single token std={std_val:.6f}, "
+                            f"{unique_scores} unique values (n={len(scores)})"
                         )
 
                 summary_stats[exp_type][f"{score_type}_std"] = (
@@ -609,8 +627,6 @@ def analyze_brier_scores_by_experiment_type(
                         "verbal_none_facial_none",
                         "verbal_mid_facial_high",
                     ]:
-                        from collections import Counter
-
                         true_counts = Counter(true_classes)
                         pred_counts = Counter(predicted_classes)
                         print(f"🔍 DEBUG {exp_type}:")
@@ -618,10 +634,8 @@ def analyze_brier_scores_by_experiment_type(
                         print(f"    Pred class counts: {dict(pred_counts)}")
 
                     # Calculate metrics
-                    macro_precision, macro_recall, macro_f1 = (
-                        calculate_classification_metrics(
-                            true_classes, predicted_classes
-                        )
+                    _, macro_recall, macro_f1 = calculate_classification_metrics(
+                        true_classes, predicted_classes
                     )
                     true_class_precision = calculate_precision_for_true_class(
                         true_classes, predicted_classes
@@ -638,7 +652,8 @@ def analyze_brier_scores_by_experiment_type(
                     summary_stats[exp_type][f"accuracy_{pred_type}"] = accuracy
                 except Exception as e:
                     print(
-                        f"🔸 Warning: Could not calculate metrics for {exp_type} {pred_type}: {e}"
+                        f"🔸 Warning: Could not calculate metrics for "
+                        f"{exp_type} {pred_type}: {e}"
                     )
                     summary_stats[exp_type][f"f1_{pred_type}"] = np.nan
                     summary_stats[exp_type][f"precision_{pred_type}"] = np.nan
@@ -647,7 +662,9 @@ def analyze_brier_scores_by_experiment_type(
                     summary_stats[exp_type][f"accuracy_{pred_type}"] = np.nan
             else:
                 print(
-                    f"🔸 Data mismatch for {exp_type} {pred_type}: pred_len={len(predicted_classes) if predicted_classes else 0}, true_len={len(true_classes) if true_classes else 0}"
+                    f"🔸 Data mismatch for {exp_type} {pred_type}: "
+                    f"pred_len={len(predicted_classes) if predicted_classes else 0}, "
+                    f"true_len={len(true_classes) if true_classes else 0}"
                 )
                 summary_stats[exp_type][f"f1_{pred_type}"] = np.nan
                 summary_stats[exp_type][f"precision_{pred_type}"] = np.nan
@@ -666,7 +683,7 @@ def print_brier_score_summary(summary_stats: Dict[str, Dict[str, Any]]) -> None:
     print("=" * 100)
 
     # Group by agreement type for better organization
-    agreement_groups = {}
+    agreement_groups: Dict[str, List[tuple[str, Dict[str, Any]]]] = {}
     for exp_type, stats in summary_stats.items():
         agreement_type = stats["agreement_type"]
         if agreement_type not in agreement_groups:
@@ -683,10 +700,11 @@ def print_brier_score_summary(summary_stats: Dict[str, Dict[str, Any]]) -> None:
                 print("  " + "-" * 70)
 
                 # Full output scores
-                print(f"  Full Output:")
+                print("  Full Output:")
                 if not np.isnan(stats["brier_scores_full_mean"]):
                     print(
-                        f"    Brier Score: {stats['brier_scores_full_mean']:.4f} ± {stats['brier_scores_full_std']:.4f}"
+                        f"    Brier Score: {stats['brier_scores_full_mean']:.4f} ± "
+                        f"{stats['brier_scores_full_std']:.4f}"
                     )
                     if not np.isnan(stats.get("f1_full", np.nan)):
                         print(f"    F1 Score:    {stats['f1_full']:.4f}")
@@ -695,13 +713,14 @@ def print_brier_score_summary(summary_stats: Dict[str, Dict[str, Any]]) -> None:
                         print(f"    Accuracy:    {stats['accuracy_full']:.4f}")
                         print(f"    MAE:         {stats['mae_full']:.4f}")
                 else:
-                    print(f"    No data")
+                    print("    No data")
 
                 # Single token scores
-                print(f"  Single Token:")
+                print("  Single Token:")
                 if not np.isnan(stats["brier_scores_single_mean"]):
                     print(
-                        f"    Brier Score: {stats['brier_scores_single_mean']:.4f} ± {stats['brier_scores_single_std']:.4f}"
+                        f"    Brier Score: {stats['brier_scores_single_mean']:.4f} ± "
+                        f"{stats['brier_scores_single_std']:.4f}"
                     )
                     if not np.isnan(stats.get("f1_single", np.nan)):
                         print(f"    F1 Score:    {stats['f1_single']:.4f}")
@@ -710,7 +729,7 @@ def print_brier_score_summary(summary_stats: Dict[str, Dict[str, Any]]) -> None:
                         print(f"    Accuracy:    {stats['accuracy_single']:.4f}")
                         print(f"    MAE:         {stats['mae_single']:.4f}")
                 else:
-                    print(f"    No data")
+                    print("    No data")
 
 
 if __name__ == "__main__":
@@ -732,7 +751,7 @@ if __name__ == "__main__":
         # Print results
         print_brier_score_summary(brier_summary)
 
-        print(f"\n✅ Analysis completed successfully!")
+        print("\n✅ Analysis completed successfully!")
 
         # print(scenarios_by_type)
 

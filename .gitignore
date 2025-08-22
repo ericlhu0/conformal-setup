@@ -3,6 +3,7 @@
 multirun/
 outputs/
 experiments/results
+commit.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -5,16 +5,14 @@ verbal/facial combination."""
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
 
 sys.path.append(".")
 
-from analyze_q1_disagreement import (
-    analyze_brier_scores_by_experiment_type,
+from analyze_q1_disagreement import (  # pylint: disable=wrong-import-position
     is_q1_scenario,
     organize_predictions_by_scenario,
     parse_scenario_classification,
@@ -30,7 +28,7 @@ def load_q1_data_from_results_dir(results_dir: str) -> tuple:
     if not config_path.exists():
         raise FileNotFoundError(f"ERROR: Q1 config file not found at {config_path}")
 
-    with open(config_path, "r") as f:
+    with open(config_path, "r", encoding="utf-8") as f:
         expert_data = json.load(f)
 
     # Load model predictions from specified results directory
@@ -40,7 +38,7 @@ def load_q1_data_from_results_dir(results_dir: str) -> tuple:
             f"ERROR: Final results file not found at {final_results_path}"
         )
 
-    with open(final_results_path, "r") as f:
+    with open(final_results_path, "r", encoding="utf-8") as f:
         final_results = json.load(f)
 
     # Extract Q1 experiment results
@@ -102,18 +100,15 @@ def load_q1_data_from_results_dir(results_dir: str) -> tuple:
 
 def load_q1_analysis_results(
     results_dir: str = "image_facial_expression_results",
-) -> Dict[str, Any]:
+) -> tuple:
     """Load and run Q1 analysis to get results from specified directory."""
     # Load data and run analysis
-    expert_data, final_results_list, scenarios_by_type = load_q1_data_from_results_dir(
+    _, final_results_list, scenarios_by_type = load_q1_data_from_results_dir(
         results_dir
     )
     organized_predictions = organize_predictions_by_scenario(final_results_list)
-    summary_stats = analyze_brier_scores_by_experiment_type(
-        organized_predictions, scenarios_by_type
-    )
 
-    return summary_stats, organized_predictions, scenarios_by_type
+    return organized_predictions, scenarios_by_type
 
 
 def calculate_average_distributions(
@@ -132,7 +127,6 @@ def calculate_average_distributions(
 
         scenario_info = scenarios_by_type[scenario_name]
         classification = scenario_info["classification"]
-        experiment_type = classification["scenario_description"]
         verbal_level = classification["verbal_level"]
         facial_level = classification["facial_level"]
         expert_labels = scenario_info["expert_labels"]
@@ -259,16 +253,17 @@ def create_single_plot(
     fig, axes = plt.subplots(3, 3, figsize=(18, 14))
     if output_type == "labels":
         fig.suptitle(
-            f"Average True Label Distributions\n",
+            "Average True Label Distributions\n",
             fontsize=16,
             fontweight="bold",
         )
     else:
         modality_title = "Images" if modality == "image" else "Text Descriptions"
         fig.suptitle(
-            f"Facial Expressions as {modality_title}\n{output_type.title()} Output\n",
+            f"Facial Expressions as {modality_title}\n"
+            f"{output_type.title()} Output\n",
             fontsize=16,
-            fontweight="bold"
+            fontweight="bold",
         )
 
     for i, verbal_level in enumerate(levels):
@@ -297,11 +292,11 @@ def create_single_plot(
                     )
 
                     # Add value labels on bars
-                    for bar, prob in zip(bars, probabilities):
+                    for chart_bar, prob in zip(bars, probabilities):
                         if prob > 0.01:
                             ax.text(
-                                bar.get_x() + bar.get_width() / 2,
-                                bar.get_height() + 0.01,
+                                chart_bar.get_x() + chart_bar.get_width() / 2,
+                                chart_bar.get_height() + 0.01,
                                 f"{prob:.2f}",
                                 ha="center",
                                 va="bottom",
@@ -336,7 +331,8 @@ def create_single_plot(
                         error_kw={"linewidth": 1, "capthick": 1},
                     )
 
-                    # Draw red horizontal lines (tick marks) for true labels at each class position
+                    # Draw red horizontal lines (tick marks) for true labels at each
+                    # class position
                     for k, prob in enumerate(label_probabilities):
                         if prob > 0.001:  # Only draw lines for non-zero probabilities
                             # Draw horizontal line spanning the width of the bar
@@ -361,11 +357,11 @@ def create_single_plot(
                     )
 
                     # Add value labels on prediction bars
-                    for bar, prob in zip(pred_bars, pred_probabilities):
+                    for chart_bar, prob in zip(pred_bars, pred_probabilities):
                         if prob > 0.01:
                             ax.text(
-                                bar.get_x() + bar.get_width() / 2,
-                                bar.get_height() + 0.01,
+                                chart_bar.get_x() + chart_bar.get_width() / 2,
+                                chart_bar.get_height() + 0.01,
                                 f"{prob:.2f}",
                                 ha="center",
                                 va="bottom",
@@ -379,7 +375,8 @@ def create_single_plot(
                 ax.set_ylabel("Average Probability")
                 ax.set_xlabel("Comfort Threshold")
                 ax.set_title(
-                    f"Verbal: {verbal_level.title()}, Facial: {facial_level.title()}\n(n={count})",
+                    f"Verbal: {verbal_level.title()}, "
+                    f"Facial: {facial_level.title()}\n(n={count})",
                     fontsize=10,
                 )
             else:
@@ -398,13 +395,27 @@ def create_single_plot(
                 ax.set_xlabel("Comfort Threshold")
 
     # Add axis labels for the grid structure
-    fig.text(0.02, 0.5, 'Verbal Expressed Discomfort', va='center', rotation='vertical', 
-             fontsize=14, fontweight='bold')
-    fig.text(0.5, 0.02, 'Facial Expressed Discomfort', ha='center', 
-             fontsize=14, fontweight='bold')
-    
+    fig.text(
+        0.02,
+        0.5,
+        "Verbal Expressed Discomfort",
+        va="center",
+        rotation="vertical",
+        fontsize=14,
+        fontweight="bold",
+    )
+    fig.text(
+        0.5,
+        0.02,
+        "Facial Expressed Discomfort",
+        ha="center",
+        fontsize=14,
+        fontweight="bold",
+    )
+
     plt.tight_layout()
-    plt.subplots_adjust(left=0.08, bottom=0.08, hspace=0.4)  # Make room for axis labels
+    # Make room for axis labels
+    plt.subplots_adjust(left=0.08, bottom=0.08, hspace=0.4)
     filename = f"q1_distribution_histograms_{output_type}_{modality}.png"
     full_path = output_dir / filename
     plt.savefig(full_path, dpi=300, bbox_inches="tight")
@@ -428,7 +439,8 @@ def create_comparison_plot(
 
     fig, axes = plt.subplots(3, 3, figsize=(18, 14))
     fig.suptitle(
-        f"Image vs Text Facial Expression Comparison\n{output_type.title()} Output\n",
+        f"Image vs Text Facial Expression Comparison\n"
+        f"{output_type.title()} Output\n",
         fontsize=16,
         fontweight="bold",
     )
@@ -439,7 +451,8 @@ def create_comparison_plot(
             exp_key = f"verbal_{verbal_level}_facial_{facial_level}"
 
             if exp_key in avg_distributions_image and exp_key in avg_distributions_text:
-                # Get prediction probabilities and standard deviations for both modalities
+                # Get prediction probabilities and standard deviations for both
+                # modalities
                 if output_type == "full":
                     image_pred = avg_distributions_image[exp_key]["full_avg"]
                     image_std = avg_distributions_image[exp_key]["full_std"]
@@ -488,7 +501,8 @@ def create_comparison_plot(
                     error_kw={"linewidth": 1, "capthick": 1},
                 )
 
-                # Draw red horizontal lines (tick marks) for true labels at each class position
+                # Draw red horizontal lines (tick marks) for true labels at each
+                # class position
                 for k, prob in enumerate(label_probabilities):
                     if prob > 0.001:  # Only draw lines for non-zero probabilities
                         # Draw horizontal line spanning both bars
@@ -513,22 +527,22 @@ def create_comparison_plot(
                 )
 
                 # Add value labels on bars (smaller font for comparison plots)
-                for bar, prob in zip(image_bars, image_pred):
+                for chart_bar, prob in zip(image_bars, image_pred):
                     if prob > 0.01:
                         ax.text(
-                            bar.get_x() + bar.get_width() / 2,
-                            bar.get_height() + 0.01,
+                            chart_bar.get_x() + chart_bar.get_width() / 2,
+                            chart_bar.get_height() + 0.01,
                             f"{prob:.2f}",
                             ha="center",
                             va="bottom",
                             fontsize=6,
                         )
 
-                for bar, prob in zip(text_bars, text_pred):
+                for chart_bar, prob in zip(text_bars, text_pred):
                     if prob > 0.01:
                         ax.text(
-                            bar.get_x() + bar.get_width() / 2,
-                            bar.get_height() + 0.01,
+                            chart_bar.get_x() + chart_bar.get_width() / 2,
+                            chart_bar.get_height() + 0.01,
                             f"{prob:.2f}",
                             ha="center",
                             va="bottom",
@@ -539,7 +553,8 @@ def create_comparison_plot(
                 ax.set_ylabel("Average Probability")
                 ax.set_xlabel("Comfort Threshold")
                 ax.set_title(
-                    f"Verbal: {verbal_level.title()}, Facial: {facial_level.title()}\n"
+                    f"Verbal: {verbal_level.title()}, "
+                    f"Facial: {facial_level.title()}\n"
                     f"Image(n={image_count}), Text(n={text_count})",
                     fontsize=10,
                 )
@@ -560,13 +575,27 @@ def create_comparison_plot(
                 ax.set_xlabel("Comfort Threshold")
 
     # Add axis labels for the grid structure
-    fig.text(0.02, 0.5, 'Verbal Expressed Discomfort', va='center', rotation='vertical', 
-             fontsize=14, fontweight='bold')
-    fig.text(0.5, 0.02, 'Facial Expressed Discomfort', ha='center', 
-             fontsize=14, fontweight='bold')
-    
+    fig.text(
+        0.02,
+        0.5,
+        "Verbal Expressed Discomfort",
+        va="center",
+        rotation="vertical",
+        fontsize=14,
+        fontweight="bold",
+    )
+    fig.text(
+        0.5,
+        0.02,
+        "Facial Expressed Discomfort",
+        ha="center",
+        fontsize=14,
+        fontweight="bold",
+    )
+
     plt.tight_layout()
-    plt.subplots_adjust(left=0.08, bottom=0.08, hspace=0.4)  # Make room for axis labels
+    # Make room for axis labels
+    plt.subplots_adjust(left=0.08, bottom=0.08, hspace=0.4)
     filename = f"q1_distribution_histograms_{output_type}_comparison.png"
     full_path = output_dir / filename
     plt.savefig(full_path, dpi=300, bbox_inches="tight")
@@ -589,7 +618,8 @@ def create_output_comparison_plot(avg_distributions: Dict, modality: str = "imag
     fig, axes = plt.subplots(3, 3, figsize=(18, 14))
     modality_title = "Images" if modality == "image" else "Text Descriptions"
     fig.suptitle(
-        f"Facial Expressions as {modality_title}\nSingle vs Full Output Comparison\n",
+        f"Facial Expressions as {modality_title}\n"
+        f"Single vs Full Output Comparison\n",
         fontsize=16,
         fontweight="bold",
     )
@@ -600,7 +630,8 @@ def create_output_comparison_plot(avg_distributions: Dict, modality: str = "imag
             exp_key = f"verbal_{verbal_level}_facial_{facial_level}"
 
             if exp_key in avg_distributions:
-                # Get prediction probabilities and standard deviations for both output types
+                # Get prediction probabilities and standard deviations for both
+                # output types
                 single_pred = avg_distributions[exp_key]["single_avg"]
                 single_std = avg_distributions[exp_key]["single_std"]
                 full_pred = avg_distributions[exp_key]["full_avg"]
@@ -641,7 +672,8 @@ def create_output_comparison_plot(avg_distributions: Dict, modality: str = "imag
                     error_kw={"linewidth": 1, "capthick": 1},
                 )
 
-                # Draw red horizontal lines (tick marks) for true labels at each class position
+                # Draw red horizontal lines (tick marks) for true labels at each
+                # class position
                 for k, prob in enumerate(label_probabilities):
                     if prob > 0.001:  # Only draw lines for non-zero probabilities
                         # Draw horizontal line spanning both bars
@@ -666,22 +698,22 @@ def create_output_comparison_plot(avg_distributions: Dict, modality: str = "imag
                 )
 
                 # Add value labels on bars (smaller font for comparison plots)
-                for bar, prob in zip(single_bars, single_pred):
+                for chart_bar, prob in zip(single_bars, single_pred):
                     if prob > 0.01:
                         ax.text(
-                            bar.get_x() + bar.get_width() / 2,
-                            bar.get_height() + 0.01,
+                            chart_bar.get_x() + chart_bar.get_width() / 2,
+                            chart_bar.get_height() + 0.01,
                             f"{prob:.2f}",
                             ha="center",
                             va="bottom",
                             fontsize=6,
                         )
 
-                for bar, prob in zip(full_bars, full_pred):
+                for chart_bar, prob in zip(full_bars, full_pred):
                     if prob > 0.01:
                         ax.text(
-                            bar.get_x() + bar.get_width() / 2,
-                            bar.get_height() + 0.01,
+                            chart_bar.get_x() + chart_bar.get_width() / 2,
+                            chart_bar.get_height() + 0.01,
                             f"{prob:.2f}",
                             ha="center",
                             va="bottom",
@@ -692,7 +724,8 @@ def create_output_comparison_plot(avg_distributions: Dict, modality: str = "imag
                 ax.set_ylabel("Average Probability")
                 ax.set_xlabel("Comfort Threshold")
                 ax.set_title(
-                    f"Verbal: {verbal_level.title()}, Facial: {facial_level.title()}\n"
+                    f"Verbal: {verbal_level.title()}, "
+                    f"Facial: {facial_level.title()}\n"
                     f"Single(n={single_count}), Full(n={full_count})",
                     fontsize=10,
                 )
@@ -713,13 +746,27 @@ def create_output_comparison_plot(avg_distributions: Dict, modality: str = "imag
                 ax.set_xlabel("Comfort Threshold")
 
     # Add axis labels for the grid structure
-    fig.text(0.02, 0.5, 'Verbal Expressed Discomfort', va='center', rotation='vertical', 
-             fontsize=14, fontweight='bold')
-    fig.text(0.5, 0.02, 'Facial Expressed Discomfort', ha='center', 
-             fontsize=14, fontweight='bold')
-    
+    fig.text(
+        0.02,
+        0.5,
+        "Verbal Expressed Discomfort",
+        va="center",
+        rotation="vertical",
+        fontsize=14,
+        fontweight="bold",
+    )
+    fig.text(
+        0.5,
+        0.02,
+        "Facial Expressed Discomfort",
+        ha="center",
+        fontsize=14,
+        fontweight="bold",
+    )
+
     plt.tight_layout()
-    plt.subplots_adjust(left=0.08, bottom=0.08, hspace=0.4)  # Make room for axis labels
+    # Make room for axis labels
+    plt.subplots_adjust(left=0.08, bottom=0.08, hspace=0.4)
     filename = f"q1_distribution_histograms_output_comparison_{modality}.png"
     full_path = output_dir / filename
     plt.savefig(full_path, dpi=300, bbox_inches="tight")
@@ -732,7 +779,8 @@ def main(create_comparison: bool = False, comparison_type: str = "modality"):
 
     Args:
         create_comparison: If True, create comparison plots
-        comparison_type: Type of comparison - "modality" (image vs text) or "output" (single vs full)
+        comparison_type: Type of comparison - "modality" (image vs text) or
+            "output" (single vs full)
     """
 
     print("🚀 Starting distribution histogram analysis...")
@@ -740,13 +788,13 @@ def main(create_comparison: bool = False, comparison_type: str = "modality"):
     if create_comparison:
         if comparison_type == "modality":
             print(
-                "📊 Loading Q1 analysis results for both image and text modalities..."
+                "📊 Loading Q1 analysis results for both image and "
+                "text modalities..."
             )
 
             # Load image results
             print("  Loading image facial expression results...")
             (
-                summary_stats_image,
                 organized_predictions_image,
                 scenarios_by_type_image,
             ) = load_q1_analysis_results("image_facial_expression_results")
@@ -756,9 +804,10 @@ def main(create_comparison: bool = False, comparison_type: str = "modality"):
 
             # Load text results
             print("  Loading text facial expression results...")
-            summary_stats_text, organized_predictions_text, scenarios_by_type_text = (
-                load_q1_analysis_results("text_facial_expression_results")
-            )
+            (
+                organized_predictions_text,
+                scenarios_by_type_text,
+            ) = load_q1_analysis_results("text_facial_expression_results")
             avg_distributions_text = calculate_average_distributions(
                 organized_predictions_text, scenarios_by_type_text
             )
@@ -770,21 +819,24 @@ def main(create_comparison: bool = False, comparison_type: str = "modality"):
                     avg_distributions_image, avg_distributions_text, output_type
                 )
 
-            print(f"\n✅ Modality comparison histogram analysis completed!")
+            print("\n✅ Modality comparison histogram analysis completed!")
             print(
-                f"   Generated 2 comparison histogram plots with side-by-side bars and red tick marks for labels"
+                "   Generated 2 comparison histogram plots with "
+                "side-by-side bars and red tick marks for labels"
             )
 
         elif comparison_type == "output":
             print(
-                "📊 Loading Q1 analysis results for single vs full output comparison..."
+                "📊 Loading Q1 analysis results for single vs full "
+                "output comparison..."
             )
-            # Default to image modality for output comparison, but could be extended to support --modality flag
+            # Default to image modality for output comparison, but could be extended
+            # to support --modality flag
             modality = "image"  # Could make this configurable in the future
             results_dir = f"{modality}_facial_expression_results"
 
-            summary_stats, organized_predictions, scenarios_by_type = (
-                load_q1_analysis_results(results_dir)
+            organized_predictions, scenarios_by_type = load_q1_analysis_results(
+                results_dir
             )
             avg_distributions = calculate_average_distributions(
                 organized_predictions, scenarios_by_type
@@ -792,21 +844,21 @@ def main(create_comparison: bool = False, comparison_type: str = "modality"):
 
             # Create output comparison plot
             print(
-                f"\n🔍 Creating single vs full output comparison histogram for {modality} modality..."
+                f"\n🔍 Creating single vs full output comparison "
+                f"histogram for {modality} modality..."
             )
             create_output_comparison_plot(avg_distributions, modality)
 
-            print(f"\n✅ Output comparison histogram analysis completed!")
+            print("\n✅ Output comparison histogram analysis completed!")
             print(
-                f"   Generated 1 comparison histogram plot showing single vs full output for {modality} modality"
+                f"   Generated 1 comparison histogram plot showing "
+                f"single vs full output for {modality} modality"
             )
 
     else:
         # Load analysis results for default (image) modality
         print("📊 Loading Q1 analysis results...")
-        summary_stats, organized_predictions, scenarios_by_type = (
-            load_q1_analysis_results()
-        )
+        organized_predictions, scenarios_by_type = load_q1_analysis_results()
 
         # Calculate average distributions
         print("🔄 Calculating average distributions...")
@@ -819,8 +871,8 @@ def main(create_comparison: bool = False, comparison_type: str = "modality"):
         for output_type in ["full", "single"]:
             create_single_plot(avg_distributions, output_type, "image")
 
-        print(f"\n✅ Distribution histogram analysis completed!")
-        print(f"   Generated 2 histogram plots with red tick marks for labels")
+        print("\n✅ Distribution histogram analysis completed!")
+        print("   Generated 2 histogram plots with red tick marks for labels")
 
 
 if __name__ == "__main__":
@@ -830,13 +882,18 @@ if __name__ == "__main__":
         description="Create distribution histograms for Q1 analysis"
     )
     parser.add_argument(
-        "--comparison", action="store_true", help="Create side-by-side comparison plots"
+        "--comparison",
+        action="store_true",
+        help="Create side-by-side comparison plots",
     )
     parser.add_argument(
         "--type",
         choices=["modality", "output"],
         default="modality",
-        help="Type of comparison: 'modality' (image vs text) or 'output' (single vs full)",
+        help=(
+            "Type of comparison: 'modality' (image vs text) or "
+            "'output' (single vs full)"
+        ),
     )
 
     args = parser.parse_args()
@@ -845,6 +902,6 @@ if __name__ == "__main__":
     if args.type == "output" and not args.comparison:
         print("❌ Error: --type output requires --comparison flag")
         parser.print_help()
-        exit(1)
+        sys.exit(1)
 
     main(create_comparison=args.comparison, comparison_type=args.type)

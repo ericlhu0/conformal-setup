@@ -18,7 +18,7 @@ def load_results(file_path: str) -> List[Dict[str, Any]]:
 
 
 def group_experiments(
-    results: List[Dict[str, Any]], group_keys: List[str]
+    results: List[Dict[str, Any]], grouping_keys: List[str]
 ) -> Dict[str, List[Dict[str, Any]]]:
     """Group experiments by model and text_input (base prompt)"""
     groups = defaultdict(list)
@@ -31,7 +31,7 @@ def group_experiments(
         # key = f"{hash(prompt_id)}_{hash(context_id)}_{hash(sensitivity_spec)}"
         key = reduce(
             lambda a, b: a + b,
-            [f"{hash(experiment['config'][group_key])}" for group_key in group_keys],
+            [f"{hash(experiment['config'][group_key])}" for group_key in grouping_keys],
         )
         groups[key].append(experiment)
 
@@ -41,7 +41,7 @@ def group_experiments(
 
 
 def plot_probability_distributions(
-    group_data: List[Dict[str, Any]], group_keys: List[str]
+    group_data: List[Dict[str, Any]], grouping_keys: List[str]
 ) -> Figure:
     """Create visualization for a group of experiments."""
     fig, ax = plt.subplots(1, 1, figsize=(15, 1.5 * len(group_data)))
@@ -97,7 +97,7 @@ def plot_probability_distributions(
 
             left += prob
 
-        bar_keys = [key for key in config if key not in group_keys]
+        bar_keys = [key for key in config if key not in grouping_keys]
 
         bar_label = reduce(
             lambda a, b: a + b,
@@ -120,7 +120,8 @@ def plot_probability_distributions(
 
     # wrapped_prompt = textwrap.fill(base_prompt, width=80)
     title_text = reduce(
-        lambda a, b: a + b, [f"{key}: {str(config[key])[:40]}\n" for key in group_keys]
+        lambda a, b: a + b,
+        [f"{key}: {str(config[key])[:40]}\n" for key in grouping_keys],
     )
 
     plt.title(title_text, fontsize=12, loc="left", pad=20)
@@ -129,15 +130,15 @@ def plot_probability_distributions(
 
 
 def visualize_results(
-    results_file: str, group_keys: List[str]
+    results_file: str, grouping_keys: List[str]
 ) -> List[Tuple[str, Figure]]:
     """Main function to create visualizations."""
     results = load_results(results_file)
-    groups = group_experiments(results, group_keys)
+    groups = group_experiments(results, grouping_keys)
 
     figures = []
     for group_name, group_data in groups.items():
-        fig = plot_probability_distributions(group_data, group_keys)
+        fig = plot_probability_distributions(group_data, grouping_keys)
         figures.append((group_name, fig))
 
     return figures
@@ -156,7 +157,7 @@ if __name__ == "__main__":
         # "context_id",
         "sensitivity_spec",
     ]
-    example_figures = visualize_results(example_results_file, group_keys)
+    example_figures = visualize_results(str(example_results_file), group_keys)
 
     # Save and show figures
     for idx, (example_group_name, example_fig) in enumerate(example_figures):
