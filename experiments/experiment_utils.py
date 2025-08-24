@@ -665,6 +665,7 @@ def run_uncertainty_analysis(
     experiment_name: str = "unknown",
     use_text_descriptions: bool = False,
     img_to_text_map: Optional[Dict[str, str]] = None,
+    run_single_token: bool = True,
 ) -> Dict[str, Any]:
     """Run comprehensive uncertainty analysis for a scenario.  # pylint:
     disable=too-many-positional-arguments.
@@ -757,18 +758,23 @@ def run_uncertainty_analysis(
             )
             predictions_full[body_part] = pred_full
 
-            # Single token approach
-            metadata_single = dict(input_metadata)
-            metadata_single["query_type"] = "body_part_single"
-            pred_single = get_comfort_level_single_token_prediction(
-                model,
-                text_input,
-                body_part,
-                incremental_file,
-                metadata_single,
-                image_input,
-            )
-            predictions_single[body_part] = pred_single
+            # Single token approach (conditional)
+            if run_single_token:
+                metadata_single = dict(input_metadata)
+                metadata_single["query_type"] = "body_part_single"
+                pred_single = get_comfort_level_single_token_prediction(
+                    model,
+                    text_input,
+                    body_part,
+                    incremental_file,
+                    metadata_single,
+                    image_input,
+                )
+                predictions_single[body_part] = pred_single
+            else:
+                # Use empty dict as placeholder when skipping single token
+                pred_single = {}
+                predictions_single[body_part] = pred_single
 
             # Calculate Brier scores if labels exist
             if body_part in labels:
@@ -780,12 +786,16 @@ def run_uncertainty_analysis(
                     brier_scores_full[body_part] = calculate_brier_score(
                         pred_full, label_dict
                     )
-                    brier_scores_single[body_part] = calculate_brier_score(
-                        pred_single, label_dict
-                    )
-                    brier_scores_comparison[body_part] = calculate_brier_score(
-                        pred_full, pred_single
-                    )
+                    if run_single_token and pred_single:
+                        brier_scores_single[body_part] = calculate_brier_score(
+                            pred_single, label_dict
+                        )
+                        brier_scores_comparison[body_part] = calculate_brier_score(
+                            pred_full, pred_single
+                        )
+                    else:
+                        brier_scores_single[body_part] = 0.0  # Placeholder
+                        brier_scores_comparison[body_part] = 0.0  # Placeholder
                     print(f"✅ Calculated Brier scores for {body_part}")
                 except Exception as brier_err:
                     print(
@@ -824,7 +834,7 @@ def run_uncertainty_analysis(
     overall_brier_scores = {}
     if "wrist" in labels:
         wrist_labels = {int(k): float(v) for k, v in labels["wrist"].items()}
-        if wrist_single:
+        if run_single_token and wrist_single:
             overall_brier_scores["single_token_vs_labels"] = calculate_brier_score(
                 wrist_single, wrist_labels
             )
@@ -858,7 +868,7 @@ def run_uncertainty_analysis(
         "comparisons": {
             "brier_single_vs_full": (
                 calculate_brier_score(wrist_full, wrist_single)
-                if (wrist_full and wrist_single)
+                if (run_single_token and wrist_full and wrist_single)
                 else 0.0
             )
         },

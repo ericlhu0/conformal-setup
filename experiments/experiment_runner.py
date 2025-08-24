@@ -121,6 +121,7 @@ def run_experiment(
     model: OpenAIModel,
     incremental_file: str = "incremental_results.jsonl",
     use_text_descriptions: bool = False,
+    run_single_token: bool = True,
 ) -> Dict[str, Any]:
     """Run a single experiment from config file.
 
@@ -129,6 +130,7 @@ def run_experiment(
         model: OpenAI model instance
         incremental_file: Path to save incremental results
         use_text_descriptions: If True, use text descriptions instead of images
+        run_single_token: If True, run single token predictions; if False, only run full output
     """
 
     # Load experiment config
@@ -195,6 +197,7 @@ def run_experiment(
             experiment_name,
             use_text_descriptions,
             img_to_text_map,
+            run_single_token,
         )
 
         # Add expected values from config for comparison
@@ -207,7 +210,7 @@ def run_experiment(
         results[scenario_name] = result
 
         # Aggregate by scenario type
-        single_brier = result["brier_scores"]["single_token_vs_labels"]
+        single_brier = result["brier_scores"].get("single_token_vs_labels", 0.0)
         full_brier = result["brier_scores"]["full_output_vs_labels"]
 
         scores_by_scenario_type[category]["scenarios"].append(scenario_name)
@@ -216,12 +219,14 @@ def run_experiment(
         scores_by_scenario_type[category]["count"] += 1
 
         # Print key metrics - focus on prediction accuracy first
-        print(f"  Brier score (single-token vs labels): {single_brier:.3f}")
+        if "single_token_vs_labels" in result["brier_scores"]:
+            print(f"  Brier score (single-token vs labels): {single_brier:.3f}")
         print(f"  Brier score (full output vs labels): {full_brier:.3f}")
-        print(
-            f"  Single-token uncertainty: {result['single_token']['uncertainty']:.3f}"
-        )
-        print(f"  Entropy: {result['single_token']['entropy']:.3f}")
+        if result["single_token"]["probs"]:  # Only show if single token was run
+            print(
+                f"  Single-token uncertainty: {result['single_token']['uncertainty']:.3f}"
+            )
+            print(f"  Entropy: {result['single_token']['entropy']:.3f}")
         print(f"  Scenario type: {category}")
 
     # Calculate scenario type statistics
@@ -265,7 +270,7 @@ def analyze_experiment_1_disagreement(results: Dict) -> Dict:
     ]
 
     for scenario_name, result in results["results"].items():
-        single_brier = result["brier_scores"]["single_token_vs_labels"]
+        single_brier = result["brier_scores"].get("single_token_vs_labels", 0.0)
         full_brier = result["brier_scores"]["full_output_vs_labels"]
 
         single_token_brier_scores.append(single_brier)
@@ -315,7 +320,7 @@ def analyze_experiment_2_ambiguity(results: Dict) -> Dict:
     full_output_brier_scores = []
 
     for scenario_name, result in results["results"].items():
-        single_brier = result["brier_scores"]["single_token_vs_labels"]
+        single_brier = result["brier_scores"].get("single_token_vs_labels", 0.0)
         full_brier = result["brier_scores"]["full_output_vs_labels"]
 
         single_token_brier_scores.append(single_brier)
@@ -342,7 +347,7 @@ def analyze_experiment_3_intensity(results: Dict) -> Dict:
     full_output_brier_scores = []
 
     for scenario_name, result in results["results"].items():
-        single_brier = result["brier_scores"]["single_token_vs_labels"]
+        single_brier = result["brier_scores"].get("single_token_vs_labels", 0.0)
         full_brier = result["brier_scores"]["full_output_vs_labels"]
 
         single_token_brier_scores.append(single_brier)
@@ -375,7 +380,7 @@ def analyze_experiment_4_modality(results: Dict) -> Dict:
     image_full_output = []
 
     for scenario_name, result in results["results"].items():
-        single_brier = result["brier_scores"]["single_token_vs_labels"]
+        single_brier = result["brier_scores"].get("single_token_vs_labels", 0.0)
         full_brier = result["brier_scores"]["full_output_vs_labels"]
 
         single_token_brier_scores.append(single_brier)
@@ -423,7 +428,7 @@ def analyze_experiment_5_uncertainty(results: Dict) -> Dict:
     single_token_uncertainties = []
 
     for scenario_name, result in results["results"].items():
-        single_brier = result["brier_scores"]["single_token_vs_labels"]
+        single_brier = result["brier_scores"].get("single_token_vs_labels", 0.0)
         full_brier = result["brier_scores"]["full_output_vs_labels"]
         single_unc = result["single_token"]["uncertainty"]
 
@@ -453,21 +458,26 @@ def analyze_experiment_5_uncertainty(results: Dict) -> Dict:
     return analysis
 
 
-def main(use_text_descriptions: bool = False):
+def main(use_text_descriptions: bool = False, run_single_token: bool = True):
     """Run all experiments and generate comprehensive analysis.
 
     Args:
         use_text_descriptions: If True, use text descriptions instead of images
+        run_single_token: If True, run single token predictions; if False, only run full output
     """
 
     # Initialize model
-    model = OpenAIModel(model="gpt-4.1", system_prompt=get_system_prompt())
+    model = OpenAIModel(model="gpt-5", system_prompt=get_system_prompt())
 
     print(
         f"🔬 Running experiments with "
         f"{'text descriptions' if use_text_descriptions else 'images'} "
         f"for facial expressions"
     )
+    if not run_single_token:
+        print("⚡ Running in full-output-only mode (skipping single token predictions)")
+    else:
+        print("🎯 Running both single token and full output predictions")
 
     # Experiment configurations
     experiments = [
@@ -487,7 +497,7 @@ def main(use_text_descriptions: bool = False):
     for i, config_file in enumerate(experiments, 1):
         try:
             experiment_results = run_experiment(
-                config_file, model, incremental_file, use_text_descriptions
+                config_file, model, incremental_file, use_text_descriptions, run_single_token
             )
             experiment_name = f"experiment_{i}"
             all_results[experiment_name] = experiment_results
@@ -569,6 +579,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Use text descriptions instead of images for facial expressions",
     )
+    parser.add_argument(
+        "--full-only",
+        action="store_true",
+        help="Run only full output predictions, skip single token predictions (faster)",
+    )
 
     args = parser.parse_args()
-    main(use_text_descriptions=args.use_text_descriptions)
+    main(use_text_descriptions=args.use_text_descriptions, run_single_token=not args.full_only)

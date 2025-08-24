@@ -342,7 +342,7 @@ class ExperimentEditor {
         // Fallback default config if no experiment is loaded
         return {
             input_context: {
-                current_action_description: "You are gently repositioning the user's wrist during a therapy session.",
+                current_action_description: "You are repositioning the user's wrist during a therapy session.",
                 current_state: {
                     contact_forces: {"entire_arm": 2, "upper_arm": 1, "forearm": 1, "wrist": 2},
                     joint_angles_deg: {"elbow": 165, "wrist": 165}
